@@ -46,3 +46,46 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local credentials, signing keys and private configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
+.envrc
+**/application-local.properties
+**/application-local.yml
+**/application-local.yaml
+**/application-*.local.properties
+**/local.properties
+**/key.properties
+secrets/
+.secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.jwt
+.jwt*
+jwt-secret*
+
+# Build output, temporary files and local backups
+**/target/
+**/build/
+**/coverage/
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.jar
+*.war
+
+# Keep build wrappers reproducible
+!**/.mvn/wrapper/maven-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.jar
+jwt_secret*
