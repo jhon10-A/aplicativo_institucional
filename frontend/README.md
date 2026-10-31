@@ -110,3 +110,13 @@ Para completar la fidelidad gráfica se necesitan:
 3. Ilustraciones originales autorizadas de estudiante, docente y familia usadas en el diseño, preferentemente con fondo transparente.
 
 Los comandos Chrome/Android y API_BASE_URL documentados arriba se conservan. El backend, CORS, las cuentas y el esquema de base de datos no se modificaron en esta adaptación. Las pruebas usan respuestas aisladas para comprobar los roles; no equivalen a ejecutar un login real contra el servidor local.
+
+## Panel inicial del estudiante
+
+El acceso Estudiante abre el panel solo después del login real y de comprobar el rol ESTUDIANTE devuelto por el backend. Docente y Padre de familia conservan su pantalla de sesión actual. No se modificó el cliente HTTP ni la configuración de conexión.
+
+El módulo está separado en `lib/features/student/`: `student_section.dart` define la navegación, `screens/student_panel.dart` contiene la estructura adaptable y `widgets/` contiene menú, inicio y estado de desarrollo.
+
+Inicio conserva nombres, apellidos, usuario y roles reales de la sesión. Cursos, Tareas, Calificaciones, Asistencia y Comunicados muestran únicamente “Sección en desarrollo”, sin consultas académicas, datos simulados ni operaciones sobre la base. En celulares y tablets se usa un menú lateral desplegable; en pantallas de al menos 900 píxeles, la navegación queda visible. Atrás desde una sección vuelve a Inicio; desde Inicio cierra la sesión, igual que el botón Cerrar sesión. El cierre elimina la sesión de memoria y vuelve a la portada.
+
+Ejecutar desde `frontend/` con los comandos de Chrome o Android ya documentados arriba. Verificación del módulo: `flutter analyze --no-pub` y `flutter test --no-pub`. Las pruebas de navegación y login usan respuestas aisladas; no equivalen a una prueba con una cuenta real en el servidor local.

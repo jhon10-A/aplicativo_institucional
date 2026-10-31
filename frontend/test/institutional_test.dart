@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:aplicativo_institucional/main.dart';
 import 'package:aplicativo_institucional/auth.dart';
+import 'package:aplicativo_institucional/features/student/screens/student_panel.dart';
 import 'package:aplicativo_institucional/widgets/login_form.dart';
 
 import 'auth_test.dart' show responseFixture;
@@ -68,6 +69,10 @@ void main() {
       );
       responseRole = access.value;
       await credentials(tester);
+      expect(
+        find.byType(StudentPanel),
+        access.key == 'Estudiante' ? findsOneWidget : findsNothing,
+      );
       expect(find.text('Nombre de prueba Apellido de prueba'), findsOneWidget);
       expect(find.text('Roles: ${access.value}'), findsOneWidget);
       await tester.tap(find.text('Cerrar sesión'));
