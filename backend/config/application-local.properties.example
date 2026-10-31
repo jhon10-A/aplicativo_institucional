@@ -1,0 +1,6 @@
+# Copy to application-local.properties in this directory, then fill locally.
+# No credentials are included. Never commit the completed local file.
+# URL, MariaDB driver and ddl-auto=none stay in src/main/resources/application.properties.
+spring.datasource.username=
+spring.datasource.password=
+# Supply JWT_SECRET_BASE64 via the environment, never as a committed value.
