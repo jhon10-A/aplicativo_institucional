@@ -32,6 +32,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import pe.edu.micaelabastidas.backend.auth.AuthService;
+import pe.edu.micaelabastidas.backend.student.StudentAccess;
+import org.springframework.security.authorization.AuthorizationDecision;
 
 @Configuration
 public class SecurityConfig {
@@ -68,7 +70,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, StudentAccess students) throws Exception {
         JwtGrantedAuthoritiesConverter roles = new JwtGrantedAuthoritiesConverter();
         roles.setAuthoritiesClaimName("roles");
         roles.setAuthorityPrefix("ROLE_");
@@ -80,6 +82,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/estado").permitAll()
+                        .requestMatchers("/api/estudiante/**").access((authentication, context) ->
+                                new AuthorizationDecision(students.allowed(authentication.get())))
                         .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, exception) -> unauthorized(response))
