@@ -1,6 +1,14 @@
 # Frontend institucional: login Flutter
 
-La app envía `POST /api/auth/login` con JSON `nombreUsuario` y `password`. Lee la respuesta real (`accessToken`, `tokenType`, `expiresAt`, `usuario`) y muestra nombres, apellidos y roles recibidos. No incluye cuentas simuladas, registro público ni información académica.
+## Perfil del estudiante
+
+El menú Estudiante incluye Perfil. Consulta `/api/estudiante/perfil` y `/api/estudiante/matriculas` con la misma `API_BASE_URL` del login y el JWT Bearer de la sesión. Muestra datos personales, código y todas las matrículas con periodo, estado, nivel, grado y sección; no selecciona una matrícula por defecto. Los campos opcionales ausentes se presentan como “No registrado”. El perfil es de consulta, sin edición ni creación de matrículas.
+
+La pantalla distingue carga, ausencia de perfil, ausencia de matrículas, acceso denegado y error con reintento. Un 401 cierra la sesión. Al salir de Perfil, cerrar sesión o vencer el plazo de una solicitud, se descartan las respuestas pendientes. El cliente no persiste ni imprime el JWT. Cursos, Tareas, Calificaciones, Asistencia y Comunicados continúan en desarrollo.
+
+Las pruebas usan HTTP simulado para verificar los estados, la navegación, el envío de Bearer y el descarte de respuestas tardías. No crean usuarios ni registros en MySQL.
+
+La app envía `POST /api/auth/login` con JSON `nombreUsuario` y `password`. Lee la respuesta real (`accessToken`, `tokenType`, `expiresAt`, `usuario`) y muestra nombres, apellidos y roles recibidos. No incluye cuentas simuladas ni registro público. El perfil y las matrículas se consultan en los endpoints del estudiante.
 
 La contraseña se limpia al enviar la solicitud y no se persiste. La sesión y el JWT existen solo en memoria: cerrar sesión, vencer el token o reiniciar la app elimina la sesión. No se imprimen credenciales, cuerpos de login ni tokens. No hay renovación automática ni almacenamiento persistente.
 

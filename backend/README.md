@@ -1,5 +1,16 @@
 # Backend institucional
 
+## Consulta del perfil Estudiante
+
+- `GET /api/estudiante/perfil`: datos del usuario y perfil `estudiante` asociados al `sub` del JWT. No acepta un identificador para consultar otra cuenta ni devuelve hashes.
+- `GET /api/estudiante/matriculas`: todas las matrículas propias con periodo, estado, nivel, grado y sección, ordenadas por inicio del periodo descendente e identificadores como desempate. No selecciona una matrícula automáticamente ni oculta el historial.
+
+Ambos endpoints requieren JWT con autoridad ESTUDIANTE y vuelven a comprobar usuario activo y rol ESTUDIANTE en la base. Responden 401 sin credencial válida, 403 si falta el permiso o la cuenta está inactiva, y 404 con código `SIN_PERFIL` si no existe la fila en `estudiante`. Un perfil sin matrículas devuelve una lista vacía. Las respuestas usan `Cache-Control: no-store` y las consultas son de solo lectura.
+
+`/api/auth/me` y el contrato del login se conservan. El inicializador de desarrollo no crea perfiles ni matrículas: disponer del rol no implica disponer de esos registros. Esta implementación no modifica el esquema ni crea datos locales.
+
+Las pruebas de perfil cargan el DDL de `database/01_estructura.sql` únicamente en H2 en memoria (modo MySQL), usan dos estudiantes para comprobar aislamiento y prueban login con BCrypt y acceso mediante el JWT emitido. No sustituyen una prueba de integración contra una instancia MySQL 8.4 aislada.
+
 Spring Boot 4.1.2, Maven Wrapper, Java 21 y MySQL 8.4 en el puerto 3307. La base `db_institucional` contiene 25 tablas. El esquema existente se comprueba con `spring.jpa.hibernate.ddl-auto=validate`; el backend no crea ni actualiza tablas. El script de instalación está en `../database/01_estructura.sql`.
 
 ## Configuración y arranque (PowerShell)

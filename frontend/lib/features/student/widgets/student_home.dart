@@ -58,7 +58,11 @@ class StudentHome extends StatelessWidget {
                   ),
                   leading: Icon(section.icon),
                   title: Text(section.label),
-                  subtitle: const Text('Sección en desarrollo'),
+                  subtitle: Text(
+                    section == StudentSection.perfil
+                        ? 'Consulta tus datos y matrículas'
+                        : 'Sección en desarrollo',
+                  ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => onSelect(section),
                 ),

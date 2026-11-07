@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../auth.dart';
 import '../student_section.dart';
+import '../student_api.dart';
+import 'student_profile_screen.dart';
 import '../widgets/development_section.dart';
 import '../widgets/student_home.dart';
 import '../widgets/student_navigation.dart';
@@ -11,9 +13,13 @@ class StudentPanel extends StatefulWidget {
     super.key,
     required this.session,
     required this.onLogout,
+    this.apiBaseUrl = const String.fromEnvironment('API_BASE_URL'),
+    this.studentApiFactory,
   });
   final Session session;
   final VoidCallback onLogout;
+  final String apiBaseUrl;
+  final StudentApi Function()? studentApiFactory;
 
   @override
   State<StudentPanel> createState() => _StudentPanelState();
@@ -98,6 +104,18 @@ class _StudentPanelState extends State<StudentPanel> {
                 Expanded(
                   child: _section == StudentSection.inicio
                       ? StudentHome(session: widget.session, onSelect: _select)
+                      : _section == StudentSection.perfil
+                      ? StudentProfileScreen(
+                          key: ObjectKey(widget.session),
+                          apiFactory:
+                              widget.studentApiFactory ??
+                              () => StudentApi(
+                                baseUrl: widget.apiBaseUrl,
+                                token: widget.session.accessToken,
+                              ),
+                          onUnauthorized: widget.onLogout,
+                          onHome: () => _select(StudentSection.inicio),
+                        )
                       : DevelopmentSection(
                           section: _section,
                           onHome: () => _select(StudentSection.inicio),

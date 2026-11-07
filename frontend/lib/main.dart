@@ -84,7 +84,11 @@ class _MyAppState extends State<MyApp> {
         },
         child: _session != null
             ? studentSession
-                  ? StudentPanel(session: _session!, onLogout: _home)
+                  ? StudentPanel(
+                      session: _session!,
+                      onLogout: _home,
+                      apiBaseUrl: _api.baseUrl,
+                    )
                   : SessionPage(session: _session!, onLogout: _home)
             : _access != null
             ? LoginPage(

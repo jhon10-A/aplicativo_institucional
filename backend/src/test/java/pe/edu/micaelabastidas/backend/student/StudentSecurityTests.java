@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {"spring.config.import=", "spring.datasource.url=jdbc:h2:mem:student-security",
         "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa",
         "spring.datasource.password=", "spring.jpa.hibernate.ddl-auto=none", "spring.sql.init.mode=never",
-        "app.dev.seed-enabled=false", "logging.level.root=WARN"})
+        "app.dev.seed-enabled=false", "debug=false", "logging.level.root=WARN"})
 @Import(StudentSecurityTests.Probes.class)
 class StudentSecurityTests {
     @DynamicPropertySource
