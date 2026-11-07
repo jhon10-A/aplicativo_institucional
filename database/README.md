@@ -4,15 +4,17 @@
 
 ## Ejecutar una sola vez en una instalación nueva
 
-1. Conectarse en DBeaver a una instalación nueva de MariaDB (el script original se ejecutó en MariaDB 12.3.2), con un usuario que tenga permisos para crear la base y sus tablas e insertar los roles.
+1. Conectarse en DBeaver a una instalación nueva de MySQL 8.4 en el puerto 3307, con un usuario que tenga permisos para crear la base y sus tablas e insertar los roles.
 2. Abrir `01_estructura.sql` como script SQL y seleccionar esa conexión. La base `db_institucional` debe estar ausente o vacía.
 3. Ejecutar el script completo una sola vez. El propio script crea y selecciona la base; no requiere editar ni guardar contraseñas en el archivo.
-4. Revisar los resultados finales de `SHOW TABLES`, el conteo de tablas y `SELECT * FROM rol`.
+4. Comprobar que la consulta final a `information_schema.tables` devuelve 25 tablas.
 
 No ejecutar sobre la base actual que ya tiene tablas. El script no es idempotente: `CREATE DATABASE IF NOT EXISTS` solo protege la creación de la base; las tablas y las inserciones de roles no están preparadas para repetirse. No es una migración ni un respaldo de datos.
 
 ## Alcance del archivo recibido
 
-El adjunto contiene **25 sentencias CREATE TABLE**, aunque se informó que la base actual tiene 26 tablas. Se conservó exactamente la estructura recibida, sin inventar una tabla adicional. En una base vacía, este archivo define 25 tablas y los cuatro roles. Si se necesita reproducir una tabla número 26, falta incorporar su definición original.
+El script contiene **25 sentencias CREATE TABLE**, todas con clave primaria y motor InnoDB. Todas las tablas referenciadas están definidas. En una base vacía, crea las 25 tablas y los cuatro roles; no incluye cuentas, contraseñas, hashes ni datos personales.
+
+El backend utiliza `jdbc:mysql://localhost:3307/db_institucional`, el driver `com.mysql.cj.jdbc.Driver` y `spring.jpa.hibernate.ddl-auto=validate` para comprobar el esquema sin crear ni alterar tablas. Las credenciales se suministran en el archivo local ignorado o mediante el entorno.
 
 El archivo se comprobó estáticamente; no se ejecutó contra ninguna base de datos.

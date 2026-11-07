@@ -22,7 +22,7 @@ Configurar también `JWT_SECRET_BASE64` como se explica en `../backend/README.md
 .\mvnw.cmd spring-boot:run
 ```
 
-Si este backend ya usa el puerto 8080, detenerlo con Ctrl+C en su terminal antes de reiniciarlo. Usar una cuenta existente, activa y con hash BCrypt; esta integración no crea cuentas ni cambia tablas. Conservar la conexión local ya configurada y `ddl-auto=none`.
+Si este backend ya usa el puerto 8080, detenerlo con Ctrl+C en su terminal antes de reiniciarlo. Usar una cuenta existente, activa y con hash BCrypt; esta integración no crea cuentas ni cambia tablas. El backend usa MySQL 8.4 en el puerto 3307, base `db_institucional` de 25 tablas, y `ddl-auto=validate` para comprobar el esquema sin alterarlo.
 
 CORS se configura exclusivamente mediante `APP_CORS_ALLOWED_ORIGIN` (`app.cors.allowed-origin`). Sin esa variable no se habilitan orígenes externos. El valor permite exactamente un origen HTTP local con puerto, por ejemplo `http://localhost:5173`, sin barra final. No admite comodines ni todos los orígenes. Abrir Chrome en ese origen exacto: `127.0.0.1` y `localhost` son orígenes diferentes. Cambiar la variable requiere reiniciar el backend.
 
@@ -110,3 +110,13 @@ Para completar la fidelidad gráfica se necesitan:
 3. Ilustraciones originales autorizadas de estudiante, docente y familia usadas en el diseño, preferentemente con fondo transparente.
 
 Los comandos Chrome/Android y API_BASE_URL documentados arriba se conservan. El backend, CORS, las cuentas y el esquema de base de datos no se modificaron en esta adaptación. Las pruebas usan respuestas aisladas para comprobar los roles; no equivalen a ejecutar un login real contra el servidor local.
+
+## Panel inicial del estudiante
+
+El acceso Estudiante abre el panel solo después del login real y de comprobar el rol ESTUDIANTE devuelto por el backend. Docente y Padre de familia conservan su pantalla de sesión actual. No se modificó el cliente HTTP ni la configuración de conexión.
+
+El módulo está separado en `lib/features/student/`: `student_section.dart` define la navegación, `screens/student_panel.dart` contiene la estructura adaptable y `widgets/` contiene menú, inicio y estado de desarrollo.
+
+Inicio conserva nombres, apellidos, usuario y roles reales de la sesión. Cursos, Tareas, Calificaciones, Asistencia y Comunicados muestran únicamente “Sección en desarrollo”, sin consultas académicas, datos simulados ni operaciones sobre la base. En celulares y tablets se usa un menú lateral desplegable; en pantallas de al menos 900 píxeles, la navegación queda visible. Atrás desde una sección vuelve a Inicio; desde Inicio cierra la sesión, igual que el botón Cerrar sesión. El cierre elimina la sesión de memoria y vuelve a la portada.
+
+Ejecutar desde `frontend/` con los comandos de Chrome o Android ya documentados arriba. Verificación del módulo: `flutter analyze --no-pub` y `flutter test --no-pub`. Las pruebas de navegación y login usan respuestas aisladas; no equivalen a una prueba con una cuenta real en el servidor local.

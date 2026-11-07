@@ -89,3 +89,6 @@ temp/
 !**/.mvn/wrapper/maven-wrapper.jar
 !**/gradle/wrapper/gradle-wrapper.jar
 jwt_secret*
+
+# Local Gradle caches
+**/.gradle/
