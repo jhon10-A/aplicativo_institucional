@@ -22,7 +22,7 @@ Configurar también `JWT_SECRET_BASE64` como se explica en `../backend/README.md
 .\mvnw.cmd spring-boot:run
 ```
 
-Si este backend ya usa el puerto 8080, detenerlo con Ctrl+C en su terminal antes de reiniciarlo. Usar una cuenta existente, activa y con hash BCrypt; esta integración no crea cuentas ni cambia tablas. Conservar la conexión local ya configurada y `ddl-auto=none`.
+Si este backend ya usa el puerto 8080, detenerlo con Ctrl+C en su terminal antes de reiniciarlo. Usar una cuenta existente, activa y con hash BCrypt; esta integración no crea cuentas ni cambia tablas. El backend usa MySQL 8.4 en el puerto 3307, base `db_institucional` de 25 tablas, y `ddl-auto=validate` para comprobar el esquema sin alterarlo.
 
 CORS se configura exclusivamente mediante `APP_CORS_ALLOWED_ORIGIN` (`app.cors.allowed-origin`). Sin esa variable no se habilitan orígenes externos. El valor permite exactamente un origen HTTP local con puerto, por ejemplo `http://localhost:5173`, sin barra final. No admite comodines ni todos los orígenes. Abrir Chrome en ese origen exacto: `127.0.0.1` y `localhost` son orígenes diferentes. Cambiar la variable requiere reiniciar el backend.
 

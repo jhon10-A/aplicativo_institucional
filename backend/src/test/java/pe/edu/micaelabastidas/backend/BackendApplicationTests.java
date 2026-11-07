@@ -41,6 +41,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {
+        "spring.config.import=",
         "spring.datasource.url=jdbc:h2:mem:auth-tests;DB_CLOSE_DELAY=-1",
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa", "spring.datasource.password=",
@@ -111,6 +112,13 @@ class BackendApplicationTests {
         assertEquals(3600, jwt.getExpiresAt().getEpochSecond() - jwt.getIssuedAt().getEpochSecond());
         mvc.perform(get("/api/test/protected").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
+        String me = mvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.id").value(7))
+                .andExpect(jsonPath("$.roles[0]").value("ESTUDIANTE"))
+                .andReturn().getResponse().getContentAsString();
+        assertEquals(2, mapper.readTree(me).size());
         verify(usuarios, never()).save(any());
     }
 
@@ -150,6 +158,7 @@ class BackendApplicationTests {
 
     @Test
     void publicStatusAndProtectedRoutes() throws Exception {
+        mvc.perform(get("/api/auth/me")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/estado")).andExpect(status().isOk()).andExpect(jsonPath("$.estado").value("ok"));
         mvc.perform(get("/api/test/protected")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/otra-ruta")).andExpect(status().isUnauthorized());
@@ -157,6 +166,8 @@ class BackendApplicationTests {
 
     @Test
     void malformedJwtIsRejected() throws Exception {
+        mvc.perform(get("/api/auth/me").header("Authorization", "Bearer invalid-token"))
+                .andExpect(status().isUnauthorized());
         mvc.perform(get("/api/test/protected").header("Authorization", "Bearer invalid-token"))
                 .andExpect(status().isUnauthorized()).andExpect(content().json("{\"mensaje\":\"No autorizado\"}"));
     }
