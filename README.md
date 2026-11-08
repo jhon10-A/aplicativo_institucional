@@ -8,6 +8,8 @@ Repositorio con frontend Flutter, backend Spring Boot y la estructura SQL de la 
 
 ## Configuración local del backend
 
+También se puede usar `backend/.env` mediante el cargador PowerShell `backend/scripts/Load-LocalEnv.ps1`, sin dependencias nuevas. Copiar primero `backend/.env.example` solo si no existe `.env` y completarlo privadamente. Ver [variables locales y prioridad de configuración](backend/README.md). El archivo local de propiedades sigue siendo compatible y `.env` no se versiona ni se carga automáticamente al abrir el IDE.
+
 Desde `backend/`, copiar `config/application-local.properties.example` a `config/application-local.properties` **solo si no existe**, y completar allí las credenciales propias. El archivo local está ignorado por Git y fuera del JAR. Spring Boot lo importa automáticamente al ejecutar desde `backend/`; no requiere activar el perfil `local`.
 
 El archivo compartido utiliza `jdbc:mysql://localhost:3307/db_institucional`, el driver `com.mysql.cj.jdbc.Driver` y `spring.jpa.hibernate.ddl-auto=validate`, que comprueba las 25 tablas sin alterarlas. La clave `JWT_SECRET_BASE64` se suministra mediante el entorno, sin valor predeterminado ni claves guardadas en este repositorio. Ver el README del backend para generar una clave en memoria sin imprimirla.
