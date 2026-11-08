@@ -41,7 +41,21 @@ Requieren JWT ESTUDIANTE, cuenta activa y rol vigente. La matrícula pertenece a
 
 Los DTO incluyen título, descripción y archivo disponibles, curso, docente, fechas de publicación y límite, puntaje máximo y estado de entrega. El estado se deriva de los datos: `PENDIENTE` sin entrega, `ENTREGADA` con entrega sin fecha de revisión y `REVISADA` con fecha de revisión. No se deduce una falta ni una calificación del vencimiento. La entrega contiene únicamente los datos de esa tarea y matrícula: comentario, archivo, fecha de entrega, puntaje y retroalimentación/revisión cuando existen. Las fechas `DATETIME` se devuelven sin inventar una zona horaria.
 
-Se consulta `tarea` mediante `asignacion_docente` y se une `entrega_tarea` por **tarea y matrícula**, también entre compañeros de la misma sección. Son operaciones de solo lectura con `Cache-Control: no-store`; no existe una operación de envío o modificación de entregas en esta funcionalidad. `StudentTaskTests` usa el DDL existente solo en H2 en memoria y comprueba filtros, estados, aislamiento, JWT y rechazo de escrituras.
+Se consulta `tarea` mediante `asignacion_docente` y se une `entrega_tarea` por **tarea y matrícula**, también entre compañeros de la misma sección. Las rutas de consulta son de solo lectura con `Cache-Control: no-store`. `StudentTaskTests` usa el DDL existente solo en H2 en memoria y comprueba filtros, estados, aislamiento, JWT y rechazo de escrituras en las rutas de consulta.
+
+## Entrega de tareas del estudiante
+
+- `POST /api/estudiante/matriculas/{matriculaId}/tareas/{tareaId}/entrega`: `multipart/form-data`, con `comentario` opcional (hasta 10000 caracteres Unicode) y un único `archivo` opcional; al menos uno debe contener datos. Devuelve 201 con el recibo, fecha y estado de la entrega. No acepta valores de calificación o rutas del cliente.
+- `GET /api/estudiante/matriculas/{matriculaId}/tareas/{tareaId}/entrega`: recibo y revisión propios, también si posteriormente se desactiva la tarea.
+- `GET /api/estudiante/matriculas/{matriculaId}/tareas/{tareaId}/entrega/archivo`: descarga autenticada del adjunto propio, con `Content-Disposition: attachment`, `nosniff` y `no-store`.
+
+JWT ESTUDIANTE, cuenta activa y rol vigente son obligatorios. El servicio vuelve a comprobar la matrícula y el periodo/sección de la asignación. Para enviar exige matrícula `ACTIVA`, tarea activa, publicación iniciada y plazo no vencido, usando `CURRENT_TIMESTAMP` de la base. La fecha `DATETIME` y el reloj de MySQL deben estar configurados coherentemente. Bloquea las filas durante el envío y conserva la restricción real `UNIQUE(tarea_id, matricula_id)` para solicitudes simultáneas.
+
+El esquema admite una respuesta en `comentario` y **un solo archivo** en `archivo_url` por entrega. Esta implementación no permite editar, reemplazar, reenviar ni subir múltiples adjuntos; no crea columnas, tablas, calificaciones ni revisión. Un duplicado produce 409 `ENTREGA_DUPLICADA`; plazo o estado inválidos, 409 `FUERA_DE_PLAZO` / `ENTREGA_CERRADA`; contenido inválido, 400; tamaño excesivo, 413; recurso ajeno/inexistente, 404. No se guarda una entrega vacía.
+
+Se admiten PDF, PNG, JPG/JPEG y TXT UTF-8 hasta 5 MiB. Se contrastan extensión, MIME y firma del contenido (o UTF-8 válido sin controles peligrosos para TXT); se rechazan nombres con rutas, archivos vacíos y más de un adjunto. No hay un motor antivirus ni se ejecutan los documentos. El original no se usa como ruta ni nombre de descarga: el servidor genera un UUID y conserva en `archivo_url` una referencia `urn:entrega:...`; los DTO exponen la ruta autenticada correspondiente. Las referencias antiguas/externas no se descargan ni se leen como rutas locales mediante estos endpoints.
+
+Los bytes se guardan en `backend/storage/entregas` al ejecutar desde `backend/`, fuera de `src` y de los recursos estáticos. `storage/` está ignorado por Git. `app.submissions.storage` permite señalar un directorio privado persistente; desplegarlo con permisos exclusivos del proceso, y conservarlo junto a la base en las copias de seguridad. La aplicación no crea este directorio hasta el primer envío con archivo. Ante rollback elimina el archivo recién escrito. Los límites multipart compartidos son 5 MB por archivo y 6 MB por petición. `StudentSubmissionTests` utiliza únicamente H2 y un directorio temporal de JUnit para comprobar envío, plazo, concurrencia, autorización, archivos y limpieza de rollback.
 
 ## Cursos del estudiante
 

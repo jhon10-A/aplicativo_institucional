@@ -28,7 +28,7 @@ public class StudentTaskService {
     public static class MissingTask extends RuntimeException {}
 
     private static final String SELECT = """
-            SELECT t.id, a.id AS asignacion_id, c.id AS curso_id, c.nombre AS curso,
+            SELECT t.id, m.id AS matricula_id, a.id AS asignacion_id, c.id AS curso_id, c.nombre AS curso,
                    du.nombres, du.apellidos, t.titulo, t.descripcion, t.archivo_url,
                    t.fecha_publicacion, t.fecha_limite, t.puntaje_maximo,
                    et.id AS entrega_id, et.comentario, et.archivo_url AS entrega_archivo_url,
@@ -74,7 +74,9 @@ public class StudentTaskService {
     private List<Task> query(String sql, Object... parameters) {
         return jdbc.query(sql, (rs, row) -> {
             Submission submission = rs.getObject("entrega_id") == null ? null : new Submission(
-                    rs.getLong("entrega_id"), rs.getString("comentario"), rs.getString("entrega_archivo_url"),
+                    rs.getLong("entrega_id"), rs.getString("comentario"),
+                    SubmissionFiles.managed(rs.getString("entrega_archivo_url"))
+                            ? StudentSubmissionService.downloadPath(rs.getLong("matricula_id"),rs.getLong("id")) : rs.getString("entrega_archivo_url"),
                     rs.getObject("fecha_entrega", LocalDateTime.class), rs.getBigDecimal("puntaje"),
                     rs.getString("retroalimentacion"), rs.getObject("fecha_revision", LocalDateTime.class));
             String state = submission == null ? "PENDIENTE" : submission.fechaRevision() == null ? "ENTREGADA" : "REVISADA";

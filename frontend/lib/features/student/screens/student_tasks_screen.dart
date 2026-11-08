@@ -6,6 +6,7 @@ import '../student_api.dart';
 import '../student_course.dart';
 import '../student_profile.dart';
 import '../student_task.dart';
+import 'student_submission_screen.dart';
 
 class StudentTasksScreen extends StatefulWidget {
   const StudentTasksScreen({
@@ -242,6 +243,43 @@ class _StudentTasksScreenState extends State<StudentTasksScreen> {
                       _summary(task),
                       Text('Publicación: ${_date(task.fechaPublicacion)}'),
                       Text('Puntaje máximo: ${task.puntajeMaximo}'),
+                      FilledButton.icon(
+                        onPressed: () async {
+                          await Navigator.of(context).push<bool>(
+                            MaterialPageRoute(
+                              builder: (_) => StudentSubmissionScreen(
+                                api: _api,
+                                enrollment: _enrollment!,
+                                task: task,
+                                onUnauthorized: () {
+                                  Navigator.of(context)
+                                      .popUntil((route) => route.isFirst);
+                                  widget.onUnauthorized();
+                                },
+                              ),
+                            ),
+                          );
+                          if (mounted) {
+                            unawaited(
+                              _load(
+                                enrollment: _enrollment,
+                                course: _course,
+                                task: task.id,
+                              ),
+                            );
+                          }
+                        },
+                        icon: Icon(
+                          task.entrega == null
+                              ? Icons.upload
+                              : Icons.assignment_turned_in,
+                        ),
+                        label: Text(
+                          task.entrega == null
+                              ? 'Entregar tarea'
+                              : 'Consultar mi entrega',
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         task.descripcion?.trim().isNotEmpty == true

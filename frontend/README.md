@@ -129,9 +129,19 @@ Inicio conserva nombres, apellidos, usuario y roles reales de la sesión. Califi
 
 ### Tareas del estudiante
 
-Tareas reutiliza `StudentApi` y el Bearer de la sesión. Primero se selecciona explícitamente la matrícula y periodo; luego se pueden consultar todos sus cursos o filtrar por curso. La lista muestra título, curso, docente, fecha límite y estado de entrega. El detalle consulta nuevamente al backend y muestra descripción, publicación, puntaje máximo y la entrega propia con fecha, comentario, archivo y revisión disponibles. Los archivos se muestran como texto seleccionable; no se ejecutan ni abren automáticamente. Esta etapa no permite enviar o editar entregas.
+Tareas reutiliza `StudentApi` y el Bearer de la sesión. Primero se selecciona explícitamente la matrícula y periodo; luego se pueden consultar todos sus cursos o filtrar por curso. La lista muestra título, curso, docente, fecha límite y estado de entrega. El detalle consulta nuevamente al backend y muestra descripción, publicación, puntaje máximo y la entrega propia con fecha, comentario, archivo y revisión disponibles. Los archivos no se ejecutan ni abren automáticamente.
 
 Incluye carga, ausencia de matrículas, lista vacía, error y reintento, retorno al listado conservando el filtro y vuelta al inicio. Al cambiar de matrícula se reinicia el curso seleccionado. Las fechas se muestran tal como vienen del `DATETIME` del backend, sin conversión de zona. Un 401 cierra la sesión; 403 y 404 se muestran sin cuerpos internos. Las respuestas pendientes se descartan al salir. Las pruebas de `student_tasks_test.dart` usan HTTP simulado, verifican filtros, lista, detalle, errores, navegación y diseño adaptable con texto ampliado.
+
+### Entrega de tareas
+
+Desde el detalle, **Entregar tarea** abre un formulario con respuesta escrita y/o un archivo PDF, PNG, JPG o TXT de hasta 5 MiB. `file_picker` permite seleccionar un archivo y guardar la descarga; `http_parser` aporta el MIME al multipart enviado por el `StudentApi` existente. No se envían rutas locales, calificaciones o identificadores de otros usuarios. El servidor valida el plazo con su propio reloj, además de tipo, tamaño y autorización.
+
+Antes del POST hay una confirmación explícita. Durante la selección, confirmación y envío se deshabilitan las acciones para impedir pulsaciones repetidas. Un envío exitoso muestra el recibo y su estado; al volver se actualiza el detalle. **Consultar mi entrega** permite revisar el recibo y **Guardar mi archivo** descarga con Bearer mediante la ruta propia y abre el diálogo de guardado. No se navega a enlaces externos o referencias antiguas del servidor. El cierre por 401 retira también la pantalla de entrega.
+
+Una tarea admite una sola entrega y un solo adjunto: no hay edición ni reemplazo. Ante error se conserva la respuesta para corregirla; si no se sabe si el servidor registró el envío (por ejemplo, por pérdida de conexión), consultar el recibo antes de intentarlo otra vez. El botón de consulta está disponible en el formulario. No hay reenvío automático ni credenciales persistidas.
+
+Las pruebas de `student_submission_test.dart` usan HTTP, selector y guardado simulados para validar confirmación, carga, éxito, errores, adjuntos y prevención de duplicados. Los registros de plugins y permisos de archivos seleccionados en macOS se versionan junto a `pubspec.lock`. Para compilar aplicaciones nativas de Windows, el SDK puede requerir soporte de enlaces simbólicos (Developer Mode según la configuración del equipo); no es necesario modificarlo para las pruebas de widgets. Debe verificarse el selector/guardado nativo en cada plataforma de despliegue con archivos de prueba, sin utilizar credenciales ni documentos reales en las pruebas automatizadas.
 
 ### Cursos del estudiante
 
