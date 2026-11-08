@@ -81,6 +81,8 @@ Android tiene permiso INTERNET y permite HTTP sin cifrar únicamente en la varia
 
 ## Verificación automatizada
 
+Ver [auditoría integral de Estudiante](../docs/verificacion-integral-estudiante.md) para distinguir pruebas aisladas, conexión MySQL real y comprobaciones manuales pendientes. Al cambiar o vencer la sesión se descarta también la pila de rutas privadas; `student_session_integration_test.dart` verifica que no permanezcan visibles un recibo de entrega ni una respuesta sin enviar.
+
 Desde `frontend/`:
 
 ```powershell

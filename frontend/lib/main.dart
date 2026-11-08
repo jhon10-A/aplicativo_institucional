@@ -58,6 +58,9 @@ class _MyAppState extends State<MyApp> {
         _access == AccessProfile.estudiante &&
         _session!.roles.contains('ESTUDIANTE');
     return MaterialApp(
+      // Discard private routes and dialogs on login, logout or session expiry.
+      // Object identity avoids putting the token into widget diagnostics.
+      key: ObjectKey(_session),
       title: 'I.E. Micaela Bastidas Puyucahua',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

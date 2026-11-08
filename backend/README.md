@@ -1,5 +1,7 @@
 # Backend institucional
 
+La [auditoría integral de Estudiante](../docs/verificacion-integral-estudiante.md) documenta la conexión real de solo lectura, el contraste de esquema, CORS y las pruebas/manuales pendientes, sin incluir credenciales ni crear datos reales.
+
 ## Variables locales con .env (PowerShell, sin dependencias nuevas)
 
 Spring Boot lee las variables del entorno del proceso, pero no interpreta `.env` automáticamente. Se mantiene la importación opcional de `config/application-local.properties`, sin cambios al arranque habitual. El cargador siguiente es una alternativa explícita para desarrollo local y no inicia Java ni accede a MySQL.
