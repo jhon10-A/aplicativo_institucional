@@ -63,6 +63,8 @@ class StudentHome extends StatelessWidget {
                         ? 'Consulta tus datos y matrículas'
                         : section == StudentSection.calificaciones
                         ? 'Consulta tus notas por curso y periodo'
+                        : section == StudentSection.asistencia
+                        ? 'Consulta tu asistencia por curso y fechas'
                         : 'Sección en desarrollo',
                   ),
                   trailing: const Icon(Icons.chevron_right),

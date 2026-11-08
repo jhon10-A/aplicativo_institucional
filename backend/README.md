@@ -31,6 +31,20 @@ Prueba completa PowerShell → Maven → Spring: `& .\scripts\Test-SpringLocalEn
 
 Si el wrapper falla antes de iniciar Maven, el script admite `-MavenCommand 'ruta\a\bin\mvn.cmd'` para usar una instalación existente. Si Maven resuelve incorrectamente su repositorio local, configurar en esa sesión `MAVEN_OPTS` con `-Dmaven.repo.local=ruta/a/.m2/repository`. Usar Java 21 y una caché preparada; no hace falta modificar el wrapper ni las credenciales.
 
+## Asistencia del estudiante
+
+- `GET /api/estudiante/matriculas/{matriculaId}/asistencias`: registros y resumen de una matrícula propia.
+- `GET /api/estudiante/matriculas/{matriculaId}/cursos/{asignacionId}/asistencias`: misma consulta filtrada por una asignación propia.
+- `GET /api/estudiante/matriculas/{matriculaId}/asistencias/{asistenciaId}`: detalle de un registro propio.
+
+Los dos listados aceptan `desde` y/o `hasta` opcionales en formato estricto `AAAA-MM-DD`, entre los años 1000 y 9999. Los límites son inclusivos y filtran la columna `fecha` (`DATE`), no `registrado_en`. Fechas imposibles, vacías, formatos distintos y rangos invertidos producen 400 `FILTROS_INVALIDOS`. Omitir un extremo deja ese límite abierto. La selección de matrícula determina el periodo; los registros históricos se conservan aunque curso o periodo estén inactivos.
+
+Las respuestas de listado contienen `registros` y `resumen` calculados a partir de la misma consulta. El resumen tiene `total`, `presente`, `falta`, `tardanza` y `justificada`; son conteos de filas registradas, incluidos ceros cuando corresponde, sin porcentajes ni fechas inventadas. El orden es fecha descendente e identificador descendente como desempate. Cada registro contiene sus identificadores de asistencia, matrícula, asignación, curso y periodo; curso, docente, periodo, nivel, grado y sección; fecha, estado, observación opcional y fecha de registro.
+
+Se exige JWT ESTUDIANTE, cuenta activa, rol vigente y matrícula propia. Las uniones respetan las claves compuestas de matrícula y asignación por periodo y sección, y no permiten ver los datos de compañeros aunque compartan curso. Un recurso ajeno o inexistente responde 404 `NO_DISPONIBLE`; sin perfil, `SIN_PERFIL`. Una selección propia sin datos devuelve `registros: []` y conteos cero. Todas las respuestas usan `Cache-Control: no-store`; no hay endpoints de escritura.
+
+**Alcance del esquema:** `asistencia` admite exclusivamente `PRESENTE`, `FALTA`, `TARDANZA` y `JUSTIFICADA`, con una fila única por matrícula, asignación y fecha. Dos cursos en una misma fecha son dos registros. No hay calendario de clases esperadas ni reglas de porcentajes: un día sin registro no implica falta. La justificación se consulta como estado y observación; esta tabla no tiene adjuntos ni se implementa un envío de justificaciones. `StudentAttendanceTests` usa el DDL existente solo en H2 en memoria y verifica estados, resumen, fechas, históricos, aislamiento, JWT y rechazo de escrituras.
+
 ## Calificaciones del estudiante
 
 - `GET /api/estudiante/matriculas/{matriculaId}/calificaciones`: todas las notas registradas de una matrícula propia.

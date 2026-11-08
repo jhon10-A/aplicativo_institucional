@@ -4,7 +4,7 @@
 
 El menú Estudiante incluye Perfil. Consulta `/api/estudiante/perfil` y `/api/estudiante/matriculas` con la misma `API_BASE_URL` del login y el JWT Bearer de la sesión. Muestra datos personales, código y todas las matrículas con periodo, estado, nivel, grado y sección; no selecciona una matrícula por defecto. Los campos opcionales ausentes se presentan como “No registrado”. El perfil es de consulta, sin edición ni creación de matrículas.
 
-La pantalla distingue carga, ausencia de perfil, ausencia de matrículas, acceso denegado y error con reintento. Un 401 cierra la sesión. Al salir de Perfil, cerrar sesión o vencer el plazo de una solicitud, se descartan las respuestas pendientes. El cliente no persiste ni imprime el JWT. Cursos, Tareas y Calificaciones tienen sus pantallas de consulta descritas más abajo; Asistencia y Comunicados continúan en desarrollo.
+La pantalla distingue carga, ausencia de perfil, ausencia de matrículas, acceso denegado y error con reintento. Un 401 cierra la sesión. Al salir de Perfil, cerrar sesión o vencer el plazo de una solicitud, se descartan las respuestas pendientes. El cliente no persiste ni imprime el JWT. Cursos, Tareas, Calificaciones y Asistencia tienen sus pantallas de consulta descritas más abajo; Comunicados continúa en desarrollo.
 
 Las pruebas usan HTTP simulado para verificar los estados, la navegación, el envío de Bearer y el descarte de respuestas tardías. No crean usuarios ni registros en MySQL.
 
@@ -125,7 +125,15 @@ El acceso Estudiante abre el panel solo después del login real y de comprobar e
 
 El módulo está separado en `lib/features/student/`: `student_section.dart` define la navegación, `screens/student_panel.dart` contiene la estructura adaptable y `widgets/` contiene menú, inicio y estado de desarrollo.
 
-Inicio conserva nombres, apellidos, usuario y roles reales de la sesión. Asistencia y Comunicados muestran únicamente “Sección en desarrollo”, sin consultas académicas, datos simulados ni operaciones sobre la base. En celulares y tablets se usa un menú lateral desplegable; en pantallas de al menos 900 píxeles, la navegación queda visible. Atrás desde una sección vuelve a Inicio; desde Inicio cierra la sesión, igual que el botón Cerrar sesión. El cierre elimina la sesión de memoria y vuelve a la portada.
+Inicio conserva nombres, apellidos, usuario y roles reales de la sesión. Comunicados muestra únicamente “Sección en desarrollo”, sin consultas académicas, datos simulados ni operaciones sobre la base. En celulares y tablets se usa un menú lateral desplegable; en pantallas de al menos 900 píxeles, la navegación queda visible. Atrás desde una sección vuelve a Inicio; desde Inicio cierra la sesión, igual que el botón Cerrar sesión. El cierre elimina la sesión de memoria y vuelve a la portada.
+
+### Asistencia del estudiante
+
+Asistencia reutiliza el `StudentApi` autenticado. Primero pide seleccionar explícitamente matrícula/periodo; permite ver todos sus cursos o filtrar por una asignación. `Desde` y `Hasta` aceptan fechas opcionales `AAAA-MM-DD` con límites inclusivos. **Aplicar fechas** consulta el rango y **Limpiar fechas** lo retira; se muestra el rango efectivamente consultado. Las fechas imposibles o invertidas se rechazan antes de enviar la solicitud y los filtros también se validan en backend. El cliente solo admite parámetros `desde` y `hasta` en las rutas de listado de asistencia, nunca identificadores de otros usuarios.
+
+La lista muestra fecha, curso, periodo y estado (`Presente`, `Falta`, `Tardanza`, `Justificada`). Si hay registros, muestra el resumen del servidor con los mismos filtros: total y conteos de cada estado. El detalle consulta nuevamente el registro y añade docente, nivel, grado, sección, observación disponible y fecha de registro. Volver conserva curso y fechas; cambiar matrícula reinicia el curso y conserva el rango consultado. No se inventan faltas para días sin registros ni se muestran porcentajes; se cuentan registros por curso y fecha, no días únicos. La justificación se consulta, sin adjuntos ni solicitud de cambios de estado.
+
+Incluye carga, ausencia de matrículas, lista vacía, error y reintento; sin datos no se muestra un resumen de faltas inexistentes. Un 401 cierra sesión y un 403 informa falta de acceso. Se descartan respuestas al salir. `student_attendance_test.dart` usa HTTP simulado para probar filtros, fechas, resumen, estados, detalle, errores, navegación y diseño adaptable con texto ampliado, sin MySQL real.
 
 ### Calificaciones del estudiante
 

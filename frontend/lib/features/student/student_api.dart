@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 import 'submission_attachment.dart';
+import 'student_attendance.dart';
 
 enum StudentFailureKind {
   unauthorized,
@@ -180,14 +181,17 @@ class StudentApi {
     _client.close();
   }
 
-  Future<Object?> get(String resource) async {
+  Future<Object?> get(
+    String resource, {
+    Map<String, String> query = const {},
+  }) async {
     if (_closed) throw const StudentFailure(StudentFailureKind.cancelled);
     final base = Uri.tryParse(baseUrl);
     if ((!['perfil', 'matriculas'].contains(resource) &&
             !RegExp(r'^matriculas/[1-9][0-9]*/cursos(?:/[1-9][0-9]*)?$')
                 .hasMatch(resource) &&
             !RegExp(
-              r'^matriculas/[1-9][0-9]*/(?:(?:tareas|calificaciones)(?:/[1-9][0-9]*)?|cursos/[1-9][0-9]*/(?:tareas|calificaciones))$',
+              r'^matriculas/[1-9][0-9]*/(?:(?:tareas|calificaciones|asistencias)(?:/[1-9][0-9]*)?|cursos/[1-9][0-9]*/(?:tareas|calificaciones|asistencias))$',
             ).hasMatch(resource)) ||
         base == null ||
         !['http', 'https'].contains(base.scheme) ||
@@ -198,10 +202,27 @@ class StudentApi {
         (base.path.isNotEmpty && base.path != '/')) {
       throw const StudentFailure(StudentFailureKind.invalid);
     }
+    if (query.isNotEmpty &&
+        (!RegExp(
+              r'^matriculas/[1-9][0-9]*/(?:cursos/[1-9][0-9]*/)?asistencias$',
+            ).hasMatch(resource) ||
+            query.entries.any(
+              (entry) =>
+                  !['desde', 'hasta'].contains(entry.key) ||
+                  !validAttendanceDate(entry.value),
+            ) ||
+            (query.containsKey('desde') &&
+                query.containsKey('hasta') &&
+                query['desde']!.compareTo(query['hasta']!) > 0))) {
+      throw const StudentFailure(StudentFailureKind.validation);
+    }
     try {
       final response = await _client
           .get(
-            base.replace(path: '/api/estudiante/$resource'),
+            base.replace(
+              path: '/api/estudiante/$resource',
+              queryParameters: query.isEmpty ? null : query,
+            ),
             headers: {
               'Authorization': 'Bearer $token',
               'Accept': 'application/json',
@@ -217,7 +238,8 @@ class StudentApi {
         case 404:
           if (resource.contains('/cursos') ||
               resource.contains('/tareas') ||
-              resource.contains('/calificaciones')) {
+              resource.contains('/calificaciones') ||
+              resource.contains('/asistencias')) {
             final body = jsonDecode(utf8.decode(response.bodyBytes));
             if (body is Map && body['codigo'] == 'SIN_PERFIL') {
               throw const StudentFailure(StudentFailureKind.missingProfile);
@@ -227,6 +249,11 @@ class StudentApi {
           throw const StudentFailure(StudentFailureKind.missingProfile);
         case 200:
           return jsonDecode(utf8.decode(response.bodyBytes));
+        case 400:
+          if (resource.contains('/asistencias')) {
+            throw const StudentFailure(StudentFailureKind.validation);
+          }
+          throw const StudentFailure(StudentFailureKind.invalid);
         default:
           throw const StudentFailure(StudentFailureKind.invalid);
       }

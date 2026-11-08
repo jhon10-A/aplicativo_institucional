@@ -7,6 +7,7 @@ import 'student_profile_screen.dart';
 import 'student_courses_screen.dart';
 import 'student_tasks_screen.dart';
 import 'student_grades_screen.dart';
+import 'student_attendance_screen.dart';
 import '../widgets/development_section.dart';
 import '../widgets/student_home.dart';
 import '../widgets/student_navigation.dart';
@@ -145,6 +146,18 @@ class _StudentPanelState extends State<StudentPanel> {
                         )
                       : _section == StudentSection.calificaciones
                       ? StudentGradesScreen(
+                          key: ObjectKey(widget.session),
+                          apiFactory:
+                              widget.studentApiFactory ??
+                              () => StudentApi(
+                                baseUrl: widget.apiBaseUrl,
+                                token: widget.session.accessToken,
+                              ),
+                          onUnauthorized: widget.onLogout,
+                          onHome: () => _select(StudentSection.inicio),
+                        )
+                      : _section == StudentSection.asistencia
+                      ? StudentAttendanceScreen(
                           key: ObjectKey(widget.session),
                           apiFactory:
                               widget.studentApiFactory ??
