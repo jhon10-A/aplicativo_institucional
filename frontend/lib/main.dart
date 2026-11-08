@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'access_profile.dart';
 import 'auth.dart';
+import 'features/student/screens/student_panel.dart';
 import 'screens/home_page.dart';
 import 'screens/login_page.dart';
 import 'screens/session_page.dart';
@@ -51,47 +52,55 @@ class _MyAppState extends State<MyApp> {
   }
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'I.E. Micaela Bastidas Puyucahua',
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: institutionalWine,
-        primary: institutionalWine,
-        secondary: institutionalNavy,
-      ),
-      scaffoldBackgroundColor: const Color(0xFFF0F7FD),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: const Color(0xFFF4F8FF),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFBCD4EC)),
+  Widget build(BuildContext context) {
+    final studentSession =
+        _session != null &&
+        _access == AccessProfile.estudiante &&
+        _session!.roles.contains('ESTUDIANTE');
+    return MaterialApp(
+      title: 'I.E. Micaela Bastidas Puyucahua',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: institutionalWine,
+          primary: institutionalWine,
+          secondary: institutionalNavy,
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF0F7FD),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF4F8FF),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFFBCD4EC)),
+          ),
         ),
       ),
-    ),
-    home: PopScope(
-      canPop: _access == null && !_technology && _session == null,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) _home();
-      },
-      child: _session != null
-          ? SessionPage(session: _session!, onLogout: _home)
-          : _access != null
-          ? LoginPage(
-              key: ValueKey(_access),
-              api: _api,
-              access: _access!,
-              onLogin: _login,
-              onBack: _home,
-            )
-          : _technology
-          ? TechnologyPage(onBack: _home)
-          : HomePage(
-              onAccess: (access) => setState(() => _access = access),
-              onTechnology: () => setState(() => _technology = true),
-            ),
-    ),
-  );
+      home: PopScope(
+        canPop: _access == null && !_technology && _session == null,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && !studentSession) _home();
+        },
+        child: _session != null
+            ? studentSession
+                  ? StudentPanel(session: _session!, onLogout: _home)
+                  : SessionPage(session: _session!, onLogout: _home)
+            : _access != null
+            ? LoginPage(
+                key: ValueKey(_access),
+                api: _api,
+                access: _access!,
+                onLogin: _login,
+                onBack: _home,
+              )
+            : _technology
+            ? TechnologyPage(onBack: _home)
+            : HomePage(
+                onAccess: (access) => setState(() => _access = access),
+                onTechnology: () => setState(() => _technology = true),
+              ),
+      ),
+    );
+  }
 }

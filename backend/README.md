@@ -1,6 +1,37 @@
 # Backend institucional
 
-Spring Boot 4.1.2, Maven Wrapper, Java 21 y MariaDB. El esquema existente se conserva con `spring.jpa.hibernate.ddl-auto=none`; el backend no crea ni actualiza tablas. El script de instalación está en `../database/01_estructura.sql`.
+## Variables locales con .env (PowerShell, sin dependencias nuevas)
+
+Spring Boot lee las variables del entorno del proceso, pero no interpreta `.env` automáticamente. Se mantiene la importación opcional de `config/application-local.properties`, sin cambios al arranque habitual. El cargador siguiente es una alternativa explícita para desarrollo local y no inicia Java ni accede a MySQL.
+
+Desde `backend/`, crear la copia solo si no existe y completarla personalmente en un editor:
+
+```powershell
+if (-not (Test-Path -LiteralPath .env)) { Copy-Item .env.example .env }
+# Completar .env en privado; no compartir su contenido ni capturas.
+& .\scripts\Load-LocalEnv.ps1
+.\mvnw.cmd spring-boot:run
+```
+
+Ambos comandos deben ejecutarse en la misma terminal. Si se ejecuta el cargador en otro proceso PowerShell, sus variables no llegan a la terminal original. Después de cargarlo también se puede ejecutar `java -jar target/backend-0.0.1-SNAPSHOT.jar` desde `backend/`. La ejecución directa desde el IDE solo usa estas variables si el IDE las recibe en su propio entorno o configuración de ejecución; abrir `.env` no lo carga.
+
+Si PowerShell bloquea los archivos `.ps1`, abrir una sesión autorizada con `powershell -NoProfile -ExecutionPolicy RemoteSigned`, entrar en `backend/` y ejecutar allí los dos comandos anteriores. Esa opción solo afecta al proceso abierto, no cambia permanentemente la política del equipo. No cambiar políticas administradas por la organización. Para probar únicamente el cargador desde una terminal que bloquea scripts: `powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\Test-LocalEnv.ps1`.
+
+La prioridad para estas opciones es: variables ya presentes en la terminal, valores no vacíos cargados de `.env`, `application-local.properties` y configuración compartida. Los argumentos de Java/Spring y otras fuentes de mayor prioridad siguen las reglas de Spring Boot. Las entradas vacías de `.env` se ignoran, permitiendo migrar una variable a la vez. Para recargar un valor modificado en `.env`, abrir una terminal nueva sin esa variable predefinida o retirarla explícitamente del entorno del proceso. Cerrar la terminal elimina las variables cargadas de esa sesión.
+
+La plantilla no tiene credenciales. Usuario, contraseña y clave JWT se completan privadamente; una clave JWT debe seguir siendo Base64 de al menos 32 bytes aleatorios. No copiar valores privados a los README, comandos guardados o archivos versionados. `.env` y el archivo local están ignorados y fuera del JAR; `.env.example` sí se comparte. El ejemplo no activa la creación de cuentas.
+
+Formato admitido: una variable permitida por línea, `NOMBRE=valor`, líneas vacías y comentarios de línea completa con `#`. Se admiten comillas simples o dobles exteriores; el contenido es literal, sin expansión de `$`, escapes ni ejecución de comandos. `#` y `=` dentro del valor son literales; no usar comentarios al final ni sintaxis `export`. Se rechazan claves desconocidas, duplicadas o comillas sin cerrar antes de cargar cualquier variable. Los errores solo indican el tipo de problema y número de línea, nunca el contenido.
+
+Variables permitidas: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `JWT_SECRET_BASE64`, `APP_CORS_ALLOWED_ORIGIN`, `APP_JWT_TTL_SECONDS` y `SERVER_PORT`. MySQL continúa usando el puerto 3307, `db_institucional` y `ddl-auto=validate`. No se modifica el esquema.
+
+Prueba del cargador sin leer `.env` ni acceder a MySQL: `& .\scripts\Test-LocalEnv.ps1`. Las pruebas usan un archivo temporal con valores ficticios y restauran las variables del proceso.
+
+Prueba completa PowerShell → Maven → Spring: `& .\scripts\Test-SpringLocalEnv.ps1`. Usa las siete variables permitidas con valores ficticios, un archivo de propiedades temporal y un contexto sin `DataSource` ni JPA; comprueba la prioridad del entorno y la conservación de propiedades locales. No lee los archivos privados ni conecta a MySQL. Ejecuta Maven sin red (`--offline`), por lo que requiere Java y las dependencias ya disponibles en la caché local. Restaura las variables del proceso al terminar. La prueba Java de este recorrido solo se activa con el indicador que establece este script.
+
+Si el wrapper falla antes de iniciar Maven, el script admite `-MavenCommand 'ruta\a\bin\mvn.cmd'` para usar una instalación existente. Si Maven resuelve incorrectamente su repositorio local, configurar en esa sesión `MAVEN_OPTS` con `-Dmaven.repo.local=ruta/a/.m2/repository`. Usar Java 21 y una caché preparada; no hace falta modificar el wrapper ni las credenciales.
+
+Spring Boot 4.1.2, Maven Wrapper, Java 21 y MySQL 8.4 en el puerto 3307. La base `db_institucional` contiene 25 tablas. El esquema existente se comprueba con `spring.jpa.hibernate.ddl-auto=validate`; el backend no crea ni actualiza tablas. El script de instalación está en `../database/01_estructura.sql`.
 
 ## Configuración y arranque (PowerShell)
 
@@ -26,7 +57,7 @@ Remove-Variable jwtBytes, jwtRng
 
 El JWT vence en una hora. `app.jwt.ttl-seconds` permite configurar entre 1 y 86400 segundos (también mediante `APP_JWT_TTL_SECONDS`). Se validan firma HS256, emisor, vencimiento obligatorio y fecha de validez. No hay renovación ni revocación de tokens; un cambio posterior de roles o desactivación se refleja al volver a iniciar sesión, y un token ya emitido conserva su validez hasta vencer.
 
-La conexión local existente se conserva. Para otras instalaciones pueden suministrarse `SPRING_DATASOURCE_URL` (protocolo `jdbc:mariadb`), `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD` mediante el entorno. No versionar credenciales. Usar HTTPS fuera del desarrollo local.
+La URL compartida es `jdbc:mysql://localhost:3307/db_institucional` y el driver es `com.mysql.cj.jdbc.Driver`. Para otras instalaciones pueden suministrarse `SPRING_DATASOURCE_URL` (protocolo `jdbc:mysql`), `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD` mediante el entorno. No versionar credenciales. Usar HTTPS fuera del desarrollo local.
 
 ## Cuenta de prueba: activación manual y opcional
 
@@ -61,7 +92,7 @@ Mantener la clave JWT configurada; no activar este inicializador en producción.
 2. Enviar `GET http://localhost:8080/api/estado` sin autorización: debe devolver 200.
 3. Crear `POST http://localhost:8080/api/auth/login`, seleccionar Body → raw → JSON y `Content-Type: application/json`. Usar las claves `nombreUsuario` y `password`, con los valores de la cuenta elegida. No guardar contraseñas en colecciones compartidas ni habilitar registros de cuerpos de solicitudes.
 4. Un login válido devuelve 200, `accessToken`, `tokenType` (`Bearer`), `expiresAt` y `usuario` con `id`, `nombreUsuario`, `nombres`, `apellidos`, `roles`. La respuesta usa `Cache-Control: no-store`. El JWT se devuelve únicamente como credencial en el login exitoso; no contiene contraseña ni hash.
-5. Para rutas protegidas, elegir Authorization → Bearer Token y colocar el token recibido. No imprimir tokens en la consola de Postman, exportarlos o guardarlos en Git. Actualmente no hay endpoints de negocio adicionales: una ruta inexistente devuelve 401 sin token y 404 con un token válido.
+5. Elegir Authorization → Bearer Token y colocar el token recibido. Enviar `GET http://localhost:8080/api/auth/me`: debe devolver 200 con únicamente `id` y `roles`, y `Cache-Control: no-store`. Sin token o con uno inválido devuelve 401. No imprimir tokens en la consola de Postman, exportarlos o guardarlos en Git.
 6. Una contraseña incorrecta, un usuario inexistente o inactivo devuelven el mismo 401: `{"mensaje":"Credenciales inválidas"}`. Datos vacíos, nombre mayor de 60 caracteres, contraseña mayor de 72 bytes UTF-8 o JSON malformado devuelven 400 con mensaje genérico. No se incluyen los valores rechazados.
 7. Un JWT inválido, con firma alterada, emisor incorrecto o vencido devuelve 401 en rutas protegidas. Los errores no devuelven tokens ni detalles de validación criptográfica.
 
@@ -73,7 +104,7 @@ La seguridad es sin sesión y usa el encabezado `Authorization: Bearer`; no usa 
 .\mvnw.cmd -B test
 ```
 
-Las pruebas cargan el contexto con H2 en memoria, `ddl-auto=none`, inicialización SQL desactivada y repositorios sustituidos por mocks. Generan una clave efímera en memoria; no dependen de la clave del entorno ni consultan o escriben en MariaDB local. El endpoint de prueba protegido solo existe en el código de tests.
+Las pruebas cargan el contexto con H2 en memoria, `ddl-auto=none`, inicialización SQL desactivada y repositorios sustituidos por mocks. Generan una clave efímera en memoria; no dependen de la clave del entorno ni consultan o escriben en MySQL local. Se comprueba el endpoint protegido real `/api/auth/me`; la ruta auxiliar `/api/test/protected` solo existe en tests.
 
 Se comprueban login correcto y DTO seguro, acceso público/protegido, credenciales incorrectas, usuario inexistente/inactivo, datos inválidos, JWT malformado/vencido/firma alterada/emisor incorrecto y comportamiento del inicializador con mocks. Estas pruebas no verifican la contraseña o los registros existentes en el servidor local ni reemplazan una comprobación manual con Postman. No se ejecutó un login contra el servidor local durante esta implementación.
 
@@ -87,7 +118,7 @@ Para Chrome configurar APP_CORS_ALLOWED_ORIGIN=http://localhost:5173 en la termi
 
 Las credenciales de la base están en `config/application-local.properties`, un archivo local ignorado por Git y externo al JAR. El archivo compartido `src/main/resources/application.properties` importa opcionalmente `file:./config/application-local.properties` mediante `spring.config.import`. No es necesario activar el perfil `local`: la importación es explícita.
 
-**Ejecutar Maven y el JAR desde `backend/`**, porque la ruta es relativa al directorio de trabajo. Si falta el archivo local, suministrar las credenciales mediante `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD`; las variables del entorno tienen prioridad. La URL MariaDB, el driver `org.mariadb.jdbc.Driver` y `ddl-auto=none` se conservan en la configuración compartida.
+**Ejecutar Maven y el JAR desde `backend/`**, porque la ruta es relativa al directorio de trabajo. Si falta el archivo local, suministrar las credenciales mediante `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD`; las variables del entorno tienen prioridad. La configuración compartida usa MySQL 8.4 en el puerto 3307, el driver `com.mysql.cj.jdbc.Driver` y `ddl-auto=validate` para comprobar las 25 tablas sin alterarlas.
 
 Para una clonación nueva, desde `backend/`:
 
@@ -124,4 +155,4 @@ if (-not $env:JWT_SECRET_BASE64) {
 
 El bloque no muestra ni guarda la clave JWT. Conservar la misma clave entre reinicios si se desea mantener la validez de tokens anteriores. Para ejecutar el JAR, generarlo con ` .\mvnw.cmd -B package` y lanzar `java -jar target/backend-0.0.1-SNAPSHOT.jar` desde este mismo directorio y con las mismas variables.
 
-La revisión de preparación para GitHub no ejecuta el inicializador ni operaciones sobre la base. La prueba `LocalConfigurationTests` comprueba la importación mediante el cargador de configuración de Spring, sin crear un DataSource. Las demás pruebas usan mocks y H2 aislado. Los compilados, temporales, archivos locales, claves y `.env` están excluidos; Maven Wrapper y el ejemplo sí se versionan.
+La revisión de preparación para GitHub no ejecuta el inicializador ni operaciones sobre la base. La prueba `LocalConfigurationTests` comprueba la importación de un archivo temporal sin credenciales mediante el cargador de Spring, sin leer la configuración privada ni crear un DataSource. Las demás pruebas usan mocks y H2 aislado. Los compilados, cachés Gradle, temporales, archivos locales, claves y `.env` están excluidos; Maven Wrapper y el ejemplo sí se versionan.

@@ -1,3 +1,10 @@
+-- db_institucional - MySQL 8.4
+-- 25 tablas, claves primarias, foraneas y CHECK.
+-- Basado en el script original compartido, que YA contiene 25 CREATE TABLE.
+-- No ejecutar sobre una base que ya tenga estas tablas.
+-- No incluye registros anteriores de MariaDB; solo los cuatro roles iniciales.
+-- Seleccionar la conexion MySQL 8.4, puerto 3307, antes de ejecutar.
+
 CREATE DATABASE IF NOT EXISTS db_institucional
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
@@ -356,14 +363,8 @@ CREATE TABLE recurso_educativo (
     FOREIGN KEY (curso_id) REFERENCES curso(id)
 ) ENGINE=InnoDB;
 
-
--- 8. COMPROBAR RESULTADO
-
-SHOW TABLES;
-
+-- Verificacion: el resultado esperado es 25.
 SELECT COUNT(*) AS total_tablas
 FROM information_schema.tables
 WHERE table_schema = 'db_institucional'
   AND table_type = 'BASE TABLE';
-
-SELECT * FROM rol;
