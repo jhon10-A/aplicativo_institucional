@@ -7,6 +7,7 @@ enum StudentFailureKind {
   unauthorized,
   forbidden,
   missingProfile,
+  unavailable,
   network,
   invalid,
   cancelled,
@@ -42,7 +43,9 @@ class StudentApi {
   Future<Object?> get(String resource) async {
     if (_closed) throw const StudentFailure(StudentFailureKind.cancelled);
     final base = Uri.tryParse(baseUrl);
-    if (!['perfil', 'matriculas'].contains(resource) ||
+    if ((!['perfil', 'matriculas'].contains(resource) &&
+            !RegExp(r'^matriculas/[1-9][0-9]*/cursos(?:/[1-9][0-9]*)?$')
+                .hasMatch(resource)) ||
         base == null ||
         !['http', 'https'].contains(base.scheme) ||
         base.host.isEmpty ||
@@ -69,6 +72,13 @@ class StudentApi {
         case 403:
           throw const StudentFailure(StudentFailureKind.forbidden);
         case 404:
+          if (resource.contains('/cursos')) {
+            final body = jsonDecode(utf8.decode(response.bodyBytes));
+            if (body is Map && body['codigo'] == 'SIN_PERFIL') {
+              throw const StudentFailure(StudentFailureKind.missingProfile);
+            }
+            throw const StudentFailure(StudentFailureKind.unavailable);
+          }
           throw const StudentFailure(StudentFailureKind.missingProfile);
         case 200:
           return jsonDecode(utf8.decode(response.bodyBytes));

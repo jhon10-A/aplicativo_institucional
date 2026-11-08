@@ -26,7 +26,10 @@ void main() {
     expect(find.text('Roles: ESTUDIANTE'), findsOneWidget);
     expect(find.text('isolated-test-token'), findsNothing);
     for (final section in StudentSection.values.where(
-      (s) => s != StudentSection.inicio && s != StudentSection.perfil,
+      (s) =>
+          s != StudentSection.inicio &&
+          s != StudentSection.perfil &&
+          s != StudentSection.cursos,
     )) {
       await tester.tap(find.byTooltip('Abrir navegación'));
       await tester.pumpAndSettle();

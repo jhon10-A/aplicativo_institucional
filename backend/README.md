@@ -31,6 +31,15 @@ Prueba completa PowerShell → Maven → Spring: `& .\scripts\Test-SpringLocalEn
 
 Si el wrapper falla antes de iniciar Maven, el script admite `-MavenCommand 'ruta\a\bin\mvn.cmd'` para usar una instalación existente. Si Maven resuelve incorrectamente su repositorio local, configurar en esa sesión `MAVEN_OPTS` con `-Dmaven.repo.local=ruta/a/.m2/repository`. Usar Java 21 y una caché preparada; no hace falta modificar el wrapper ni las credenciales.
 
+## Cursos del estudiante
+
+- `GET /api/estudiante/matriculas/{matriculaId}/cursos`: lista ordenada por nombre e identificador de asignación.
+- `GET /api/estudiante/matriculas/{matriculaId}/cursos/{asignacionId}`: detalle de una asignación del curso en esa matrícula.
+
+Ambos endpoints requieren JWT ESTUDIANTE, cuenta activa y rol vigente. La matrícula debe pertenecer al usuario del `sub`; la asignación debe coincidir en periodo y sección con esa matrícula. Una matrícula ajena o inexistente y una asignación ajena o inexistente producen el mismo 404 `NO_DISPONIBLE`; un usuario sin perfil recibe 404 `SIN_PERFIL`. Una matrícula propia sin asignaciones devuelve `[]`. No se elige un periodo automáticamente ni se filtran matrículas históricas o cursos inactivos.
+
+La respuesta contiene `asignacionId`, `cursoId`, `nombre`, `descripcion` (puede ser nula), `activo`, `docente` (nombres y apellidos), `periodo`, `nivel`, `grado` y `seccion`. Se usan las tablas existentes `matricula`, `asignacion_docente`, `curso` y sus relaciones, en consultas de solo lectura con `Cache-Control: no-store`. No se crean datos ni se modifica el esquema. `StudentCourseTests` carga el DDL existente exclusivamente en H2 en memoria y comprueba autorización, aislamiento, periodos, lista, detalle y JWT de login real.
+
 ## Consulta del perfil Estudiante
 
 - `GET /api/estudiante/perfil`: datos del usuario y perfil `estudiante` asociados al `sub` del JWT. No acepta un identificador para consultar otra cuenta ni devuelve hashes.

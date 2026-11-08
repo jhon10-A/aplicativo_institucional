@@ -125,6 +125,12 @@ El acceso Estudiante abre el panel solo después del login real y de comprobar e
 
 El módulo está separado en `lib/features/student/`: `student_section.dart` define la navegación, `screens/student_panel.dart` contiene la estructura adaptable y `widgets/` contiene menú, inicio y estado de desarrollo.
 
-Inicio conserva nombres, apellidos, usuario y roles reales de la sesión. Cursos, Tareas, Calificaciones, Asistencia y Comunicados muestran únicamente “Sección en desarrollo”, sin consultas académicas, datos simulados ni operaciones sobre la base. En celulares y tablets se usa un menú lateral desplegable; en pantallas de al menos 900 píxeles, la navegación queda visible. Atrás desde una sección vuelve a Inicio; desde Inicio cierra la sesión, igual que el botón Cerrar sesión. El cierre elimina la sesión de memoria y vuelve a la portada.
+Inicio conserva nombres, apellidos, usuario y roles reales de la sesión. Tareas, Calificaciones, Asistencia y Comunicados muestran únicamente “Sección en desarrollo”, sin consultas académicas, datos simulados ni operaciones sobre la base. En celulares y tablets se usa un menú lateral desplegable; en pantallas de al menos 900 píxeles, la navegación queda visible. Atrás desde una sección vuelve a Inicio; desde Inicio cierra la sesión, igual que el botón Cerrar sesión. El cierre elimina la sesión de memoria y vuelve a la portada.
+
+### Cursos del estudiante
+
+Cursos usa el `StudentApi` autenticado existente con el token de la sesión en memoria. Primero consulta las matrículas propias y pide seleccionar explícitamente una matrícula con su periodo, grado y sección. Luego carga la lista desde `/api/estudiante/matriculas/{id}/cursos`; al pulsar un curso consulta su detalle con el identificador de asignación. Muestra nombre, docente, periodo, nivel, grado, sección, descripción disponible y estado activo, conservando el historial académico.
+
+La pantalla incluye carga, ausencia de matrículas, lista vacía, errores con reintento y retorno a la lista o al inicio. Un 401 invoca el cierre de sesión; un 403 informa falta de acceso. Las respuestas pendientes se descartan al salir. No usa datos ficticios en producción ni guarda credenciales. `student_courses_test.dart` comprueba selección de periodos, autenticación HTTP, lista, detalle, errores, navegación y cancelación con respuestas aisladas.
 
 Ejecutar desde `frontend/` con los comandos de Chrome o Android ya documentados arriba. Verificación del módulo: `flutter analyze --no-pub` y `flutter test --no-pub`. Las pruebas de navegación y login usan respuestas aisladas; no equivalen a una prueba con una cuenta real en el servidor local.
