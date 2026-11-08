@@ -4,7 +4,7 @@
 
 El menú Estudiante incluye Perfil. Consulta `/api/estudiante/perfil` y `/api/estudiante/matriculas` con la misma `API_BASE_URL` del login y el JWT Bearer de la sesión. Muestra datos personales, código y todas las matrículas con periodo, estado, nivel, grado y sección; no selecciona una matrícula por defecto. Los campos opcionales ausentes se presentan como “No registrado”. El perfil es de consulta, sin edición ni creación de matrículas.
 
-La pantalla distingue carga, ausencia de perfil, ausencia de matrículas, acceso denegado y error con reintento. Un 401 cierra la sesión. Al salir de Perfil, cerrar sesión o vencer el plazo de una solicitud, se descartan las respuestas pendientes. El cliente no persiste ni imprime el JWT. Cursos, Tareas, Calificaciones, Asistencia y Comunicados continúan en desarrollo.
+La pantalla distingue carga, ausencia de perfil, ausencia de matrículas, acceso denegado y error con reintento. Un 401 cierra la sesión. Al salir de Perfil, cerrar sesión o vencer el plazo de una solicitud, se descartan las respuestas pendientes. El cliente no persiste ni imprime el JWT. Cursos, Tareas y Calificaciones tienen sus pantallas de consulta descritas más abajo; Asistencia y Comunicados continúan en desarrollo.
 
 Las pruebas usan HTTP simulado para verificar los estados, la navegación, el envío de Bearer y el descarte de respuestas tardías. No crean usuarios ni registros en MySQL.
 
@@ -125,7 +125,15 @@ El acceso Estudiante abre el panel solo después del login real y de comprobar e
 
 El módulo está separado en `lib/features/student/`: `student_section.dart` define la navegación, `screens/student_panel.dart` contiene la estructura adaptable y `widgets/` contiene menú, inicio y estado de desarrollo.
 
-Inicio conserva nombres, apellidos, usuario y roles reales de la sesión. Calificaciones, Asistencia y Comunicados muestran únicamente “Sección en desarrollo”, sin consultas académicas, datos simulados ni operaciones sobre la base. En celulares y tablets se usa un menú lateral desplegable; en pantallas de al menos 900 píxeles, la navegación queda visible. Atrás desde una sección vuelve a Inicio; desde Inicio cierra la sesión, igual que el botón Cerrar sesión. El cierre elimina la sesión de memoria y vuelve a la portada.
+Inicio conserva nombres, apellidos, usuario y roles reales de la sesión. Asistencia y Comunicados muestran únicamente “Sección en desarrollo”, sin consultas académicas, datos simulados ni operaciones sobre la base. En celulares y tablets se usa un menú lateral desplegable; en pantallas de al menos 900 píxeles, la navegación queda visible. Atrás desde una sección vuelve a Inicio; desde Inicio cierra la sesión, igual que el botón Cerrar sesión. El cierre elimina la sesión de memoria y vuelve a la portada.
+
+### Calificaciones del estudiante
+
+Calificaciones usa el `StudentApi` autenticado existente. Solicita seleccionar explícitamente matrícula/periodo, carga sus cursos y permite ver todos o filtrar por una asignación. Muestra concepto de la evaluación registrada, etapa, curso, periodo y nota con dos decimales sobre 20. El detalle vuelve a consultar al backend y añade docente, nivel, grado, sección, fecha de registro y observación disponible. Volver al listado conserva el filtro; cambiar la matrícula reinicia el curso.
+
+Solo se muestran notas registradas. Un cero se identifica como `Nota registrada: 0.00 / 20`; una selección vacía muestra `No hay calificaciones registradas para esta selección.`. La base no contiene evaluaciones independientes sin nota ni estado de publicación, y el proyecto no define promedios: la pantalla no inventa pendientes, ceros, evaluaciones, ponderaciones o promedios. El puntaje de las entregas se mantiene en Tareas y no se convierte en una calificación académica.
+
+Incluye carga, ausencia de matrículas, sin datos, errores y reintento; 401 cierra sesión y 403 informa falta de acceso. No imprime cuerpos internos ni conserva respuestas al salir. `student_grades_test.dart` comprueba selección de periodo y curso, lista, detalle, cero, vacíos, errores, Bearer, navegación y adaptación a móvil, tablet y escritorio con texto ampliado. Las pruebas usan HTTP simulado, sin MySQL real.
 
 ### Tareas del estudiante
 

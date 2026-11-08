@@ -31,6 +31,18 @@ Prueba completa PowerShell → Maven → Spring: `& .\scripts\Test-SpringLocalEn
 
 Si el wrapper falla antes de iniciar Maven, el script admite `-MavenCommand 'ruta\a\bin\mvn.cmd'` para usar una instalación existente. Si Maven resuelve incorrectamente su repositorio local, configurar en esa sesión `MAVEN_OPTS` con `-Dmaven.repo.local=ruta/a/.m2/repository`. Usar Java 21 y una caché preparada; no hace falta modificar el wrapper ni las credenciales.
 
+## Calificaciones del estudiante
+
+- `GET /api/estudiante/matriculas/{matriculaId}/calificaciones`: todas las notas registradas de una matrícula propia.
+- `GET /api/estudiante/matriculas/{matriculaId}/cursos/{asignacionId}/calificaciones`: listado filtrado por la asignación del curso de esa matrícula.
+- `GET /api/estudiante/matriculas/{matriculaId}/calificaciones/{calificacionId}`: detalle de una calificación propia.
+
+El filtro de periodo se realiza seleccionando su matrícula: cada matrícula pertenece a un único periodo y el esquema solo admite una matrícula por estudiante y periodo. Las consultas unen las claves reales de `calificacion`, matrícula y asignación por identificador, periodo y sección, y filtran por el usuario del `sub` del JWT. Requieren cuenta activa y rol ESTUDIANTE vigente. Un recurso ajeno o inexistente responde 404 `NO_DISPONIBLE`, un usuario sin perfil recibe `SIN_PERFIL`, y una selección propia sin notas devuelve `[]`. No se ocultan notas históricas por un curso o periodo inactivo. Las respuestas usan `Cache-Control: no-store`.
+
+El DTO incluye identificadores de calificación, matrícula, asignación, curso y periodo; nombre del curso y docente; periodo, nivel, grado y sección; etapa, concepto, nota decimal, observación opcional y fecha de registro. El orden es fecha de registro descendente e identificador descendente como desempate. No se mezclan calificaciones de compañeros aunque compartan curso y sección. No hay endpoints de escritura.
+
+**Limitaciones reales:** no existe una tabla independiente de evaluaciones, `nota` es `DECIMAL(4,2) NOT NULL` entre 0 y 20, y no hay columna de publicación ni ponderaciones o reglas de promedio en el proyecto. Por ello se consultan únicamente registros de `calificacion`: el concepto y la etapa describen la evaluación registrada; una ausencia no permite identificar una evaluación pendiente ni equivale a cero. No se calculan promedios, no se crean evaluaciones y no se transforma el puntaje de `entrega_tarea` en una nota académica. `StudentGradeTests` usa H2 en memoria con el DDL existente y comprueba autorización, compañeros, periodo, curso, históricos, cero, ausencia de datos, JWT real y rechazo de escrituras.
+
 ## Tareas del estudiante: consulta y detalle
 
 - `GET /api/estudiante/matriculas/{matriculaId}/tareas`: tareas activas de todos los cursos de la matrícula, ordenadas por fecha límite e identificador.

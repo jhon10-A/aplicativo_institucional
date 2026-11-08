@@ -61,6 +61,8 @@ class StudentHome extends StatelessWidget {
                   subtitle: Text(
                     section == StudentSection.perfil
                         ? 'Consulta tus datos y matrículas'
+                        : section == StudentSection.calificaciones
+                        ? 'Consulta tus notas por curso y periodo'
                         : 'Sección en desarrollo',
                   ),
                   trailing: const Icon(Icons.chevron_right),
