@@ -28,7 +28,7 @@ build/
 ### VS Code ###
 .vscode/
 
-# Local configuration and secrets
+# Local configuration and secrets (.env is loaded explicitly by scripts/Load-LocalEnv.ps1)
 .env
 .env.*
 !.env.example

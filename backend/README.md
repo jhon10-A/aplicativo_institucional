@@ -1,5 +1,36 @@
 # Backend institucional
 
+## Variables locales con .env (PowerShell, sin dependencias nuevas)
+
+Spring Boot lee las variables del entorno del proceso, pero no interpreta `.env` automáticamente. Se mantiene la importación opcional de `config/application-local.properties`, sin cambios al arranque habitual. El cargador siguiente es una alternativa explícita para desarrollo local y no inicia Java ni accede a MySQL.
+
+Desde `backend/`, crear la copia solo si no existe y completarla personalmente en un editor:
+
+```powershell
+if (-not (Test-Path -LiteralPath .env)) { Copy-Item .env.example .env }
+# Completar .env en privado; no compartir su contenido ni capturas.
+& .\scripts\Load-LocalEnv.ps1
+.\mvnw.cmd spring-boot:run
+```
+
+Ambos comandos deben ejecutarse en la misma terminal. Si se ejecuta el cargador en otro proceso PowerShell, sus variables no llegan a la terminal original. Después de cargarlo también se puede ejecutar `java -jar target/backend-0.0.1-SNAPSHOT.jar` desde `backend/`. La ejecución directa desde el IDE solo usa estas variables si el IDE las recibe en su propio entorno o configuración de ejecución; abrir `.env` no lo carga.
+
+Si PowerShell bloquea los archivos `.ps1`, abrir una sesión autorizada con `powershell -NoProfile -ExecutionPolicy RemoteSigned`, entrar en `backend/` y ejecutar allí los dos comandos anteriores. Esa opción solo afecta al proceso abierto, no cambia permanentemente la política del equipo. No cambiar políticas administradas por la organización. Para probar únicamente el cargador desde una terminal que bloquea scripts: `powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\Test-LocalEnv.ps1`.
+
+La prioridad para estas opciones es: variables ya presentes en la terminal, valores no vacíos cargados de `.env`, `application-local.properties` y configuración compartida. Los argumentos de Java/Spring y otras fuentes de mayor prioridad siguen las reglas de Spring Boot. Las entradas vacías de `.env` se ignoran, permitiendo migrar una variable a la vez. Para recargar un valor modificado en `.env`, abrir una terminal nueva sin esa variable predefinida o retirarla explícitamente del entorno del proceso. Cerrar la terminal elimina las variables cargadas de esa sesión.
+
+La plantilla no tiene credenciales. Usuario, contraseña y clave JWT se completan privadamente; una clave JWT debe seguir siendo Base64 de al menos 32 bytes aleatorios. No copiar valores privados a los README, comandos guardados o archivos versionados. `.env` y el archivo local están ignorados y fuera del JAR; `.env.example` sí se comparte. El ejemplo no activa la creación de cuentas.
+
+Formato admitido: una variable permitida por línea, `NOMBRE=valor`, líneas vacías y comentarios de línea completa con `#`. Se admiten comillas simples o dobles exteriores; el contenido es literal, sin expansión de `$`, escapes ni ejecución de comandos. `#` y `=` dentro del valor son literales; no usar comentarios al final ni sintaxis `export`. Se rechazan claves desconocidas, duplicadas o comillas sin cerrar antes de cargar cualquier variable. Los errores solo indican el tipo de problema y número de línea, nunca el contenido.
+
+Variables permitidas: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `JWT_SECRET_BASE64`, `APP_CORS_ALLOWED_ORIGIN`, `APP_JWT_TTL_SECONDS` y `SERVER_PORT`. MySQL continúa usando el puerto 3307, `db_institucional` y `ddl-auto=validate`. No se modifica el esquema.
+
+Prueba del cargador sin leer `.env` ni acceder a MySQL: `& .\scripts\Test-LocalEnv.ps1`. Las pruebas usan un archivo temporal con valores ficticios y restauran las variables del proceso.
+
+Prueba completa PowerShell → Maven → Spring: `& .\scripts\Test-SpringLocalEnv.ps1`. Usa las siete variables permitidas con valores ficticios, un archivo de propiedades temporal y un contexto sin `DataSource` ni JPA; comprueba la prioridad del entorno y la conservación de propiedades locales. No lee los archivos privados ni conecta a MySQL. Ejecuta Maven sin red (`--offline`), por lo que requiere Java y las dependencias ya disponibles en la caché local. Restaura las variables del proceso al terminar. La prueba Java de este recorrido solo se activa con el indicador que establece este script.
+
+Si el wrapper falla antes de iniciar Maven, el script admite `-MavenCommand 'ruta\a\bin\mvn.cmd'` para usar una instalación existente. Si Maven resuelve incorrectamente su repositorio local, configurar en esa sesión `MAVEN_OPTS` con `-Dmaven.repo.local=ruta/a/.m2/repository`. Usar Java 21 y una caché preparada; no hace falta modificar el wrapper ni las credenciales.
+
 ## Consulta del perfil Estudiante
 
 - `GET /api/estudiante/perfil`: datos del usuario y perfil `estudiante` asociados al `sub` del JWT. No acepta un identificador para consultar otra cuenta ni devuelve hashes.
