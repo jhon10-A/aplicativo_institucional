@@ -31,6 +31,18 @@ Prueba completa PowerShell → Maven → Spring: `& .\scripts\Test-SpringLocalEn
 
 Si el wrapper falla antes de iniciar Maven, el script admite `-MavenCommand 'ruta\a\bin\mvn.cmd'` para usar una instalación existente. Si Maven resuelve incorrectamente su repositorio local, configurar en esa sesión `MAVEN_OPTS` con `-Dmaven.repo.local=ruta/a/.m2/repository`. Usar Java 21 y una caché preparada; no hace falta modificar el wrapper ni las credenciales.
 
+## Tareas del estudiante: consulta y detalle
+
+- `GET /api/estudiante/matriculas/{matriculaId}/tareas`: tareas activas de todos los cursos de la matrícula, ordenadas por fecha límite e identificador.
+- `GET /api/estudiante/matriculas/{matriculaId}/cursos/{asignacionId}/tareas`: mismo listado filtrado por la asignación del curso.
+- `GET /api/estudiante/matriculas/{matriculaId}/tareas/{tareaId}`: detalle con la entrega propia, si existe.
+
+Requieren JWT ESTUDIANTE, cuenta activa y rol vigente. La matrícula pertenece al usuario del `sub` y la asignación coincide en periodo y sección. Las tareas inactivas y los recursos inexistentes o ajenos responden 404 `NO_DISPONIBLE`; un usuario sin perfil recibe `SIN_PERFIL`. Una selección propia sin tareas devuelve `[]`. El historial se consulta seleccionando explícitamente la matrícula.
+
+Los DTO incluyen título, descripción y archivo disponibles, curso, docente, fechas de publicación y límite, puntaje máximo y estado de entrega. El estado se deriva de los datos: `PENDIENTE` sin entrega, `ENTREGADA` con entrega sin fecha de revisión y `REVISADA` con fecha de revisión. No se deduce una falta ni una calificación del vencimiento. La entrega contiene únicamente los datos de esa tarea y matrícula: comentario, archivo, fecha de entrega, puntaje y retroalimentación/revisión cuando existen. Las fechas `DATETIME` se devuelven sin inventar una zona horaria.
+
+Se consulta `tarea` mediante `asignacion_docente` y se une `entrega_tarea` por **tarea y matrícula**, también entre compañeros de la misma sección. Son operaciones de solo lectura con `Cache-Control: no-store`; no existe una operación de envío o modificación de entregas en esta funcionalidad. `StudentTaskTests` usa el DDL existente solo en H2 en memoria y comprueba filtros, estados, aislamiento, JWT y rechazo de escrituras.
+
 ## Cursos del estudiante
 
 - `GET /api/estudiante/matriculas/{matriculaId}/cursos`: lista ordenada por nombre e identificador de asignación.

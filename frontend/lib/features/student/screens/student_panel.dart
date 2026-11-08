@@ -5,6 +5,7 @@ import '../student_section.dart';
 import '../student_api.dart';
 import 'student_profile_screen.dart';
 import 'student_courses_screen.dart';
+import 'student_tasks_screen.dart';
 import '../widgets/development_section.dart';
 import '../widgets/student_home.dart';
 import '../widgets/student_navigation.dart';
@@ -119,6 +120,18 @@ class _StudentPanelState extends State<StudentPanel> {
                         )
                       : _section == StudentSection.cursos
                       ? StudentCoursesScreen(
+                          key: ObjectKey(widget.session),
+                          apiFactory:
+                              widget.studentApiFactory ??
+                              () => StudentApi(
+                                baseUrl: widget.apiBaseUrl,
+                                token: widget.session.accessToken,
+                              ),
+                          onUnauthorized: widget.onLogout,
+                          onHome: () => _select(StudentSection.inicio),
+                        )
+                      : _section == StudentSection.tareas
+                      ? StudentTasksScreen(
                           key: ObjectKey(widget.session),
                           apiFactory:
                               widget.studentApiFactory ??

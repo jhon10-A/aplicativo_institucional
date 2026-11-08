@@ -29,7 +29,8 @@ void main() {
       (s) =>
           s != StudentSection.inicio &&
           s != StudentSection.perfil &&
-          s != StudentSection.cursos,
+          s != StudentSection.cursos &&
+          s != StudentSection.tareas,
     )) {
       await tester.tap(find.byTooltip('Abrir navegación'));
       await tester.pumpAndSettle();
@@ -59,9 +60,11 @@ void main() {
       ),
     );
     await tester.ensureVisible(
-      find.byKey(const ValueKey('student-shortcut-tareas')),
+      find.byKey(const ValueKey('student-shortcut-calificaciones')),
     );
-    await tester.tap(find.byKey(const ValueKey('student-shortcut-tareas')));
+    await tester.tap(
+      find.byKey(const ValueKey('student-shortcut-calificaciones')),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Sección en desarrollo'), findsOneWidget);
     await tester.binding.handlePopRoute();

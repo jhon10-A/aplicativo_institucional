@@ -45,7 +45,10 @@ class StudentApi {
     final base = Uri.tryParse(baseUrl);
     if ((!['perfil', 'matriculas'].contains(resource) &&
             !RegExp(r'^matriculas/[1-9][0-9]*/cursos(?:/[1-9][0-9]*)?$')
-                .hasMatch(resource)) ||
+                .hasMatch(resource) &&
+            !RegExp(
+              r'^matriculas/[1-9][0-9]*/(?:tareas(?:/[1-9][0-9]*)?|cursos/[1-9][0-9]*/tareas)$',
+            ).hasMatch(resource)) ||
         base == null ||
         !['http', 'https'].contains(base.scheme) ||
         base.host.isEmpty ||
@@ -72,7 +75,7 @@ class StudentApi {
         case 403:
           throw const StudentFailure(StudentFailureKind.forbidden);
         case 404:
-          if (resource.contains('/cursos')) {
+          if (resource.contains('/cursos') || resource.contains('/tareas')) {
             final body = jsonDecode(utf8.decode(response.bodyBytes));
             if (body is Map && body['codigo'] == 'SIN_PERFIL') {
               throw const StudentFailure(StudentFailureKind.missingProfile);

@@ -125,7 +125,13 @@ El acceso Estudiante abre el panel solo después del login real y de comprobar e
 
 El módulo está separado en `lib/features/student/`: `student_section.dart` define la navegación, `screens/student_panel.dart` contiene la estructura adaptable y `widgets/` contiene menú, inicio y estado de desarrollo.
 
-Inicio conserva nombres, apellidos, usuario y roles reales de la sesión. Tareas, Calificaciones, Asistencia y Comunicados muestran únicamente “Sección en desarrollo”, sin consultas académicas, datos simulados ni operaciones sobre la base. En celulares y tablets se usa un menú lateral desplegable; en pantallas de al menos 900 píxeles, la navegación queda visible. Atrás desde una sección vuelve a Inicio; desde Inicio cierra la sesión, igual que el botón Cerrar sesión. El cierre elimina la sesión de memoria y vuelve a la portada.
+Inicio conserva nombres, apellidos, usuario y roles reales de la sesión. Calificaciones, Asistencia y Comunicados muestran únicamente “Sección en desarrollo”, sin consultas académicas, datos simulados ni operaciones sobre la base. En celulares y tablets se usa un menú lateral desplegable; en pantallas de al menos 900 píxeles, la navegación queda visible. Atrás desde una sección vuelve a Inicio; desde Inicio cierra la sesión, igual que el botón Cerrar sesión. El cierre elimina la sesión de memoria y vuelve a la portada.
+
+### Tareas del estudiante
+
+Tareas reutiliza `StudentApi` y el Bearer de la sesión. Primero se selecciona explícitamente la matrícula y periodo; luego se pueden consultar todos sus cursos o filtrar por curso. La lista muestra título, curso, docente, fecha límite y estado de entrega. El detalle consulta nuevamente al backend y muestra descripción, publicación, puntaje máximo y la entrega propia con fecha, comentario, archivo y revisión disponibles. Los archivos se muestran como texto seleccionable; no se ejecutan ni abren automáticamente. Esta etapa no permite enviar o editar entregas.
+
+Incluye carga, ausencia de matrículas, lista vacía, error y reintento, retorno al listado conservando el filtro y vuelta al inicio. Al cambiar de matrícula se reinicia el curso seleccionado. Las fechas se muestran tal como vienen del `DATETIME` del backend, sin conversión de zona. Un 401 cierra la sesión; 403 y 404 se muestran sin cuerpos internos. Las respuestas pendientes se descartan al salir. Las pruebas de `student_tasks_test.dart` usan HTTP simulado, verifican filtros, lista, detalle, errores, navegación y diseño adaptable con texto ampliado.
 
 ### Cursos del estudiante
 
