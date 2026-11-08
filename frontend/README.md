@@ -178,6 +178,8 @@ La pantalla incluye carga, ausencia de matrículas, lista vacía, errores con re
 Ejecutar desde `frontend/` con los comandos de Chrome o Android ya documentados arriba. Verificación del módulo: `flutter analyze --no-pub` y `flutter test --no-pub`. Las pruebas de navegación y login usan respuestas aisladas; no equivalen a una prueba con una cuenta real en el servidor local.
 # Integración local y origen del navegador
 
+La prueba optativa `test_live/student_live_test.dart` conecta las pantallas a HTTP/MySQL reales con `STUDENT_LIVE_DIR` apuntando al directorio privado autorizado. Ejecutar `flutter test --no-pub test_live/student_live_test.dart`; sin esa variable se omite y no forma parte del recorrido predeterminado de `flutter test`. No incluye credenciales ni envía nuevas entregas. Véanse [resultados y pruebas manuales pendientes](../docs/prueba-real-estudiante.md).
+
 Con el backend iniciado mediante `backend/scripts/Run-LocalBackend.ps1`, abrir Web en el origen autorizado:
 
 ```powershell

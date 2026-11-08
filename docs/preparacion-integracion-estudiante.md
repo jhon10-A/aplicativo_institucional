@@ -1,5 +1,7 @@
 # Preparación de integración del módulo Estudiante
 
+Actualización: el usuario autorizó posteriormente ejecutar sobre la base original, conservando el respaldo y sin modificar registros previos. La ejecución y sus límites están en [Prueba real del estudiante](prueba-real-estudiante.md). La propuesta aislada que sigue se conserva como alternativa; no fue el entorno usado para esa ejecución.
+
 ## Diagnóstico y arranque local
 
 Revisión del 8 de noviembre de 2026 en `feature/estudiante`, inicialmente limpia. El proceso de 8080 se inició a las 08:34 antes de compilar la versión actual; se verificó su directorio de trabajo y clase principal sin publicar argumentos privados. No tenía un origen CORS explícito. El preflight desde `http://localhost:5173` devolvía 403. Spring Security ya admite ese origen si se configura: no se cambió su política, JWT ni los roles.

@@ -247,6 +247,8 @@ El bloque no muestra ni guarda la clave JWT. Conservar la misma clave entre rein
 La revisión de preparación para GitHub no ejecuta el inicializador ni operaciones sobre la base. La prueba `LocalConfigurationTests` comprueba la importación de un archivo temporal sin credenciales mediante el cargador de Spring, sin leer la configuración privada ni crear un DataSource. Las demás pruebas usan mocks y H2 aislado. Los compilados, cachés Gradle, temporales, archivos locales, claves y `.env` están excluidos; Maven Wrapper y el ejemplo sí se versionan.
 # Arranque local reproducible y CORS
 
+La [prueba real autorizada del módulo Estudiante](../docs/prueba-real-estudiante.md) documenta el respaldo, los IDs ficticios nuevos, los resultados HTTP y las limitaciones. El ejecutor optativo `scripts/Run-StudentLiveIntegration.ps1` requiere autorización explícita y no se ejecuta con las pruebas Maven habituales. No volver a sembrar la base para reiniciar una sesión.
+
 Después de generar el JAR con Java 21 y Maven `package`, desde `backend/`:
 
 ```powershell
