@@ -4,7 +4,7 @@
 
 El menú Estudiante incluye Perfil. Consulta `/api/estudiante/perfil` y `/api/estudiante/matriculas` con la misma `API_BASE_URL` del login y el JWT Bearer de la sesión. Muestra datos personales, código y todas las matrículas con periodo, estado, nivel, grado y sección; no selecciona una matrícula por defecto. Los campos opcionales ausentes se presentan como “No registrado”. El perfil es de consulta, sin edición ni creación de matrículas.
 
-La pantalla distingue carga, ausencia de perfil, ausencia de matrículas, acceso denegado y error con reintento. Un 401 cierra la sesión. Al salir de Perfil, cerrar sesión o vencer el plazo de una solicitud, se descartan las respuestas pendientes. El cliente no persiste ni imprime el JWT. Cursos, Tareas, Calificaciones y Asistencia tienen sus pantallas de consulta descritas más abajo; Comunicados continúa en desarrollo.
+La pantalla distingue carga, ausencia de perfil, ausencia de matrículas, acceso denegado y error con reintento. Un 401 cierra la sesión. Al salir de Perfil, cerrar sesión o vencer el plazo de una solicitud, se descartan las respuestas pendientes. El cliente no persiste ni imprime el JWT. Cursos, Tareas, Calificaciones, Asistencia y Comunicados tienen sus pantallas de consulta descritas más abajo.
 
 Las pruebas usan HTTP simulado para verificar los estados, la navegación, el envío de Bearer y el descarte de respuestas tardías. No crean usuarios ni registros en MySQL.
 
@@ -125,7 +125,15 @@ El acceso Estudiante abre el panel solo después del login real y de comprobar e
 
 El módulo está separado en `lib/features/student/`: `student_section.dart` define la navegación, `screens/student_panel.dart` contiene la estructura adaptable y `widgets/` contiene menú, inicio y estado de desarrollo.
 
-Inicio conserva nombres, apellidos, usuario y roles reales de la sesión. Comunicados muestra únicamente “Sección en desarrollo”, sin consultas académicas, datos simulados ni operaciones sobre la base. En celulares y tablets se usa un menú lateral desplegable; en pantallas de al menos 900 píxeles, la navegación queda visible. Atrás desde una sección vuelve a Inicio; desde Inicio cierra la sesión, igual que el botón Cerrar sesión. El cierre elimina la sesión de memoria y vuelve a la portada.
+Inicio conserva nombres, apellidos, usuario y roles reales de la sesión. Sus accesos abren las pantallas funcionales de Perfil, Cursos, Tareas, Calificaciones, Asistencia y Comunicados. En celulares y tablets se usa un menú lateral desplegable; en pantallas de al menos 900 píxeles, la navegación queda visible. Atrás desde una sección vuelve a Inicio; desde Inicio cierra la sesión, igual que el botón Cerrar sesión. El cierre elimina la sesión de memoria y vuelve a la portada.
+
+### Comunicados del estudiante
+
+Comunicados reutiliza el `StudentApi` con Bearer y abre inicialmente **Generales (sin sección)**, sin seleccionar una matrícula por defecto. El selector **Audiencia y matrícula** permite añadir los específicos de la sección de una matrícula propia; muestra periodo, nivel, grado y sección para identificar ese contexto. Si no hay perfil o matrículas, siguen disponibles los generales autorizados. La pantalla diferencia la audiencia por sección y el destino de rol, sin presentar un comunicado dirigido solo a ESTUDIANTE como público para otros roles.
+
+La lista muestra título, remitente, publicación y audiencia. El detalle vuelve a consultar la visibilidad al servidor, muestra el contenido completo como texto seleccionable y el vencimiento cuando existe. Volver conserva la selección. Incluye carga, vacío, error y reintento; un 401 cierra sesión y un 403 informa falta de acceso. Al salir se descartan las respuestas pendientes. No se renderiza HTML ni se abren enlaces o adjuntos, y no se inventan estados de leído/no leído.
+
+El comunicado no tiene vínculo con un periodo: seleccionar una matrícula filtra por su sección, sin restringir por el año de publicación. Se indica al usuario que verá los generales y los de la sección seleccionada. La vigencia se decide en el backend con su reloj. Las notificaciones individuales no forman parte de esta pantalla ni conceden acceso a otros comunicados. `student_notices_test.dart` prueba generales sin perfil, selección, audiencia, lista, detalle, fechas disponibles, vacíos, errores, Bearer y diseño adaptable con HTTP simulado. Las pruebas del panel recorren las seis secciones funcionales, sin usar MySQL.
 
 ### Asistencia del estudiante
 

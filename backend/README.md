@@ -31,6 +31,21 @@ Prueba completa PowerShell → Maven → Spring: `& .\scripts\Test-SpringLocalEn
 
 Si el wrapper falla antes de iniciar Maven, el script admite `-MavenCommand 'ruta\a\bin\mvn.cmd'` para usar una instalación existente. Si Maven resuelve incorrectamente su repositorio local, configurar en esa sesión `MAVEN_OPTS` con `-Dmaven.repo.local=ruta/a/.m2/repository`. Usar Java 21 y una caché preparada; no hace falta modificar el wrapper ni las credenciales.
 
+## Comunicados del estudiante
+
+- `GET /api/estudiante/comunicados`: generales sin sección de destino, dirigidos a todos los roles o a ESTUDIANTE.
+- `GET /api/estudiante/comunicados/{comunicadoId}`: detalle de un general visible con las mismas condiciones.
+- `GET /api/estudiante/matriculas/{matriculaId}/comunicados`: generales y específicos de la sección de una matrícula propia.
+- `GET /api/estudiante/matriculas/{matriculaId}/comunicados/{comunicadoId}`: detalle visible en esa misma audiencia.
+
+Todos requieren JWT, cuenta activa y rol ESTUDIANTE vigente. Los destinos opcionales se aplican conjuntamente: `rol_destino_id` vacío no restringe el rol; si existe, debe ser ESTUDIANTE. `seccion_destino_id` vacío identifica un general; si existe, debe coincidir con la sección de la matrícula propia seleccionada. Coincidir solo en rol o solo en sección no basta cuando ambos están definidos. La consulta general funciona incluso sin perfil o matrícula; el contexto de sección exige perfil y matrícula propios. Un recurso ajeno, no visible o inexistente produce 404 `NO_DISPONIBLE`; sin perfil al pedir una matrícula, `SIN_PERFIL`.
+
+La lista y el detalle comprueban `activo=TRUE`, `publicado_en <= CURRENT_TIMESTAMP` y vencimiento vacío o posterior a `CURRENT_TIMESTAMP`. Al llegar al instante de vencimiento deja de ser visible. No se filtra por la actividad actual del autor ni se cambia el contenido de publicaciones existentes. El orden es publicación descendente e identificador descendente como desempate. El DTO contiene título, contenido, nombres/apellidos del remitente, fecha de publicación, vencimiento opcional y destinos reales de rol y sección (con grado y nivel). Las respuestas usan `Cache-Control: no-store`; no hay endpoints de escritura ni marcas de lectura.
+
+**Limitaciones reales:** `comunicado` no tiene periodo, matrícula, grado de destino ni destinatario individual. Seleccionar una matrícula usa únicamente su sección; dos matrículas de distintos años con la misma sección ven la misma audiencia vigente. No se infiere el periodo de una publicación por su fecha ni se añade una regla temporal académica. `notificacion` tiene un usuario destinatario, pero es una tabla distinta: su mensaje privado no se expone ni se modifica, y una notificación no concede acceso a un comunicado de otro rol/sección ni altera la audiencia declarada de un general. La columna `archivo_url` no incorpora almacenamiento/ACL de adjuntos; esta funcionalidad no descarga ni sigue esos enlaces y no usa el almacenamiento privado de entregas.
+
+`StudentNoticeTests` utiliza únicamente H2 y el DDL existente. Comprueba generales, intersección de rol/sección, matrículas propias y ajenas, secciones reutilizadas en periodos distintos, publicación futura, vencimiento, inactivos, ausencia de datos, JWT real y rechazo de escrituras. No crea datos en MySQL real.
+
 ## Asistencia del estudiante
 
 - `GET /api/estudiante/matriculas/{matriculaId}/asistencias`: registros y resumen de una matrícula propia.

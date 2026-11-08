@@ -188,6 +188,9 @@ class StudentApi {
     if (_closed) throw const StudentFailure(StudentFailureKind.cancelled);
     final base = Uri.tryParse(baseUrl);
     if ((!['perfil', 'matriculas'].contains(resource) &&
+            !RegExp(
+              r'^(?:matriculas/[1-9][0-9]*/)?comunicados(?:/[1-9][0-9]*)?$',
+            ).hasMatch(resource) &&
             !RegExp(r'^matriculas/[1-9][0-9]*/cursos(?:/[1-9][0-9]*)?$')
                 .hasMatch(resource) &&
             !RegExp(
@@ -239,7 +242,8 @@ class StudentApi {
           if (resource.contains('/cursos') ||
               resource.contains('/tareas') ||
               resource.contains('/calificaciones') ||
-              resource.contains('/asistencias')) {
+              resource.contains('/asistencias') ||
+              resource.contains('comunicados')) {
             final body = jsonDecode(utf8.decode(response.bodyBytes));
             if (body is Map && body['codigo'] == 'SIN_PERFIL') {
               throw const StudentFailure(StudentFailureKind.missingProfile);

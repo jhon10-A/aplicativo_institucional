@@ -1,13 +1,33 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:aplicativo_institucional/auth.dart';
 import 'package:aplicativo_institucional/features/student/screens/student_panel.dart';
 import 'package:aplicativo_institucional/features/student/student_section.dart';
 import 'package:aplicativo_institucional/features/student/widgets/development_section.dart';
+import 'package:aplicativo_institucional/features/student/screens/student_notices_screen.dart';
+import 'package:aplicativo_institucional/features/student/student_api.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import 'auth_test.dart' show responseFixture;
+import 'student_profile_test.dart' show profileFixture;
 
 void main() {
+  StudentApi client() => StudentApi(
+    baseUrl: 'http://localhost:8080',
+    token: 'isolated-test-token',
+    client: MockClient(
+      (request) async => http.Response(
+        jsonEncode(
+          request.url.path.endsWith('/perfil') ? profileFixture() : [],
+        ),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      ),
+    ),
+  );
   testWidgets('navega por el menú móvil y vuelve a los datos de sesión', (
     tester,
   ) async {
@@ -17,6 +37,7 @@ void main() {
         home: StudentPanel(
           session: Session.fromJson(responseFixture()),
           onLogout: () => loggedOut = true,
+          studentApiFactory: client,
         ),
       ),
     );
@@ -26,21 +47,18 @@ void main() {
     expect(find.text('Roles: ESTUDIANTE'), findsOneWidget);
     expect(find.text('isolated-test-token'), findsNothing);
     for (final section in StudentSection.values.where(
-      (s) =>
-          s != StudentSection.inicio &&
-          s != StudentSection.perfil &&
-          s != StudentSection.cursos &&
-          s != StudentSection.tareas &&
-          s != StudentSection.calificaciones &&
-          s != StudentSection.asistencia,
+      (s) => s != StudentSection.inicio,
     )) {
       await tester.tap(find.byTooltip('Abrir navegación'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(ValueKey('student-nav-${section.name}')),
+      );
       await tester.tap(find.byKey(ValueKey('student-nav-${section.name}')));
       await tester.pumpAndSettle();
-      expect(find.byType(DevelopmentSection), findsOneWidget);
-      expect(find.text('Sección en desarrollo'), findsOneWidget);
+      expect(find.byType(DevelopmentSection), findsNothing);
       expect(loggedOut, isFalse);
+      await tester.ensureVisible(find.text('Volver al inicio del panel'));
       await tester.tap(find.text('Volver al inicio del panel'));
       await tester.pumpAndSettle();
       expect(find.text('Nombre de prueba Apellido de prueba'), findsOneWidget);
@@ -58,6 +76,7 @@ void main() {
         home: StudentPanel(
           session: Session.fromJson(responseFixture()),
           onLogout: () => logoutCount++,
+          studentApiFactory: client,
         ),
       ),
     );
@@ -68,7 +87,7 @@ void main() {
       find.byKey(const ValueKey('student-shortcut-comunicados')),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Sección en desarrollo'), findsOneWidget);
+    expect(find.byType(StudentNoticesScreen), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.text('Panel del estudiante'), findsOneWidget);
@@ -98,6 +117,7 @@ void main() {
           home: StudentPanel(
             session: Session.fromJson(responseFixture()),
             onLogout: () {},
+            studentApiFactory: client,
           ),
         ),
       );
@@ -135,7 +155,7 @@ void main() {
       }
       await tester.tap(find.byKey(ValueKey('student-nav-${section.name}')));
       await tester.pumpAndSettle();
-      expect(find.text('Sección en desarrollo'), findsOneWidget);
+      expect(find.byType(StudentNoticesScreen), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.ensureVisible(find.text('Volver al inicio del panel'));
       await tester.tap(find.text('Volver al inicio del panel'));
