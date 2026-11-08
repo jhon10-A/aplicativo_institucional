@@ -86,3 +86,6 @@ Se necesita una cuenta existente con rol ESTUDIANTE cuya contraseña introduzca 
 6. Comprobar el selector/guardado de archivos en los dispositivos de despliegue y la desconexión/reintento en Chrome/Android.
 
 No se probará aislamiento intentando acceder a datos personales reales ajenos: esa comprobación está cubierta con dos estudiantes y secciones en las pruebas aisladas.
+# Actualización de CORS posterior a esta auditoría
+
+El 403 descrito en el informe histórico se diagnosticó como un proceso anterior sin origen CORS explícito. Se añadió un lanzador local reproducible y pruebas de preflight, sin cambiar la política de Spring Security. La [preparación de integración](preparacion-integracion-estudiante.md) documenta el arranque y los datos propuestos para un entorno aislado. Los resultados históricos de este informe se conservan; no equivalen a una prueba manual con una cuenta Estudiante real.

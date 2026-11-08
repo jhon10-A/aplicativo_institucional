@@ -14,6 +14,24 @@ class SecurityConfigTests {
     private final SecurityConfig config = new SecurityConfig();
 
     @Test
+    void developmentCorsRequiresExplicitOriginAndPreservesLoopbackAlternatives() {
+        var request = new org.springframework.mock.web.MockHttpServletRequest("OPTIONS", "/api/estudiante/perfil");
+        var disabled = config.corsConfigurationSource("").getCorsConfiguration(request);
+        assertNull(disabled.checkOrigin("http://localhost:5173"));
+        for (String origin : new String[] {"http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174"}) {
+            var cors = config.corsConfigurationSource(origin).getCorsConfiguration(request);
+            assertEquals(origin, cors.checkOrigin(origin));
+            assertNull(cors.checkOrigin("https://example.invalid"));
+            assertEquals(java.util.List.of("GET", "POST", "OPTIONS"), cors.getAllowedMethods());
+            assertEquals(java.util.List.of("Content-Type", "Authorization", "Accept"), cors.getAllowedHeaders());
+            assertFalse(cors.getAllowCredentials());
+        }
+        for (String invalid : new String[] {"*", "https://example.invalid", "http://localhost:5173/", "http://user@localhost:5173"}) {
+            assertThrows(IllegalArgumentException.class, () -> config.corsConfigurationSource(invalid));
+        }
+    }
+
+    @Test
     void weakEmptyAndMalformedKeysAreRejected() {
         assertThrows(IllegalArgumentException.class, () -> config.jwtKey(""));
         assertThrows(IllegalArgumentException.class, () -> config.jwtKey("not base64!"));

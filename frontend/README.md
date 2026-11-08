@@ -176,3 +176,12 @@ Cursos usa el `StudentApi` autenticado existente con el token de la sesión en m
 La pantalla incluye carga, ausencia de matrículas, lista vacía, errores con reintento y retorno a la lista o al inicio. Un 401 invoca el cierre de sesión; un 403 informa falta de acceso. Las respuestas pendientes se descartan al salir. No usa datos ficticios en producción ni guarda credenciales. `student_courses_test.dart` comprueba selección de periodos, autenticación HTTP, lista, detalle, errores, navegación y cancelación con respuestas aisladas.
 
 Ejecutar desde `frontend/` con los comandos de Chrome o Android ya documentados arriba. Verificación del módulo: `flutter analyze --no-pub` y `flutter test --no-pub`. Las pruebas de navegación y login usan respuestas aisladas; no equivalen a una prueba con una cuenta real en el servidor local.
+# Integración local y origen del navegador
+
+Con el backend iniciado mediante `backend/scripts/Run-LocalBackend.ps1`, abrir Web en el origen autorizado:
+
+```powershell
+flutter run -d chrome --web-port 5173 --dart-define=API_BASE_URL=http://localhost:8080
+```
+
+`http://localhost:5173` es el origen del navegador; `http://localhost:8080` es la API. Cambiar uno exige revisar ambos valores. El backend mantiene JWT obligatorio aunque el preflight sea permitido. Un proceso antiguo en 8080 sin el origen configurado produce 403 CORS; recompilar no reinicia ese proceso. El lanzador de auditoría con `-ReadOnly` no permite probar nuevas entregas. Consultar [la preparación de pruebas aisladas](../docs/preparacion-integracion-estudiante.md) antes de usar datos de integración.

@@ -144,9 +144,10 @@ class StudentNoticeTests {
             mvc.perform(get(general()+"/"+id).with(student("1"))).andExpect(status().isNotFound());
             mvc.perform(get(list(102)+"/"+id).with(student("1"))).andExpect(status().isNotFound());
         }
-        jdbc.update("UPDATE comunicado SET fecha_vencimiento=CURRENT_TIMESTAMP WHERE id=2");
+        // DATETIME rounds fractional seconds; use a definitely expired instant.
+        jdbc.update("UPDATE comunicado SET fecha_vencimiento=DATEADD('SECOND',-1,CURRENT_TIMESTAMP) WHERE id=2");
         mvc.perform(get(general()+"/2").with(student("1"))).andExpect(status().isNotFound());
-        jdbc.update("UPDATE comunicado SET publicado_en=CURRENT_TIMESTAMP WHERE id=1");
+        jdbc.update("UPDATE comunicado SET publicado_en=DATEADD('SECOND',-1,CURRENT_TIMESTAMP) WHERE id=1");
         mvc.perform(get(general()+"/1").with(student("1"))).andExpect(status().isOk());
         jdbc.update("UPDATE comunicado SET activo=FALSE WHERE id=1");
         mvc.perform(get(general()+"/1").with(student("1"))).andExpect(status().isNotFound());

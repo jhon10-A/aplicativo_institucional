@@ -245,3 +245,14 @@ if (-not $env:JWT_SECRET_BASE64) {
 El bloque no muestra ni guarda la clave JWT. Conservar la misma clave entre reinicios si se desea mantener la validez de tokens anteriores. Para ejecutar el JAR, generarlo con ` .\mvnw.cmd -B package` y lanzar `java -jar target/backend-0.0.1-SNAPSHOT.jar` desde este mismo directorio y con las mismas variables.
 
 La revisión de preparación para GitHub no ejecuta el inicializador ni operaciones sobre la base. La prueba `LocalConfigurationTests` comprueba la importación de un archivo temporal sin credenciales mediante el cargador de Spring, sin leer la configuración privada ni crear un DataSource. Las demás pruebas usan mocks y H2 aislado. Los compilados, cachés Gradle, temporales, archivos locales, claves y `.env` están excluidos; Maven Wrapper y el ejemplo sí se versionan.
+# Arranque local reproducible y CORS
+
+Después de generar el JAR con Java 21 y Maven `package`, desde `backend/`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\Run-LocalBackend.ps1 -ReadOnly
+```
+
+Este arranque de auditoría autoriza explícitamente `http://localhost:5173`, carga `.env`, conserva `config/application-local.properties`, desactiva inicializadores y valida el esquema sin crearlo. `-ReadOnly` mantiene las conexiones de auditoría en solo lectura; las pruebas de entrega necesitan un entorno aislado con escrituras autorizadas. Detener la ejecución anterior antes de ocupar el mismo puerto.
+
+El lanzador rechaza sobrescribir otro origen configurado; usar el mismo `-Origin` para conservarlo. Los orígenes loopback alternativos se habilitan explícitamente por ejecución, sin comodines ni cambios de producción. `Test-LocalBackendLauncher.ps1` prueba el lanzador sin Java ni MySQL reales. Véase [la propuesta de integración aislada](../docs/preparacion-integracion-estudiante.md).
