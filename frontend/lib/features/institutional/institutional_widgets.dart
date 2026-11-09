@@ -65,6 +65,7 @@ class InstitutionalLayout extends StatelessWidget {
         : SafeArea(
             top: false,
             child: Container(
+              key: const Key('institutional-bottom-navigation'),
               decoration: BoxDecoration(
                 color: publicWine,
                 borderRadius: section == InstitutionalSection.location
@@ -156,6 +157,11 @@ class InstitutionalLayout extends StatelessWidget {
                   'institutional-footer.png',
                   label: 'Juntos construimos una mejor educación',
                 ),
+                if (section == InstitutionalSection.location)
+                  const SizedBox(
+                    key: Key('location-scroll-end-spacer'),
+                    height: 24,
+                  ),
               ],
             ),
           ),

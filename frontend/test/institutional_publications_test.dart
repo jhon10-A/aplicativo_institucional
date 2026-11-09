@@ -131,7 +131,8 @@ void main() {
       );
       expect(find.byKey(const Key('open-street-map')), findsOneWidget);
       expect(find.byType(FlutterMap), findsOneWidget);
-      expect(find.byType(MarkerLayer), findsNothing);
+      expect(find.byType(MarkerLayer), findsOneWidget);
+      expect(find.byKey(const Key('verified-school-marker')), findsOneWidget);
       expect(find.text('Tamburco · Abancay · Apurímac'), findsWidgets);
       expect(find.textContaining('Av. Micaela Bastidas S/N'), findsOneWidget);
       expect(find.text('083-482123'), findsOneWidget);
@@ -153,7 +154,7 @@ void main() {
               find.widgetWithText(FilledButton, 'Cómo Llegar'),
             )
             .onPressed,
-        isNull,
+        isNotNull,
       );
 
       expect(
@@ -162,7 +163,7 @@ void main() {
               find.widgetWithText(FilledButton, 'Ruta en Auto'),
             )
             .onPressed,
-        isNull,
+        isNotNull,
       );
       expect(
         tester
@@ -176,19 +177,12 @@ void main() {
         tester
             .widget<FilledButton>(find.byKey(const Key('view-in-google-maps')))
             .onPressed,
-        isNull,
+        isNotNull,
       );
       expect(find.text('Abre en Google Maps'), findsOneWidget);
       expect(find.text('Desde tu ubicación'), findsOneWidget);
       expect(find.text('Por WhatsApp'), findsOneWidget);
-      expect(find.textContaining('Requiere coordenadas'), findsNothing);
       expect(find.textContaining('Número oficial pendiente'), findsNothing);
-      expect(
-        find.byTooltip(
-          'Disponible cuando se confirmen las coordenadas exactas del colegio.',
-        ),
-        findsNWidgets(2),
-      );
       expect(
         find.byTooltip(
           'Disponible cuando se confirme el número oficial de WhatsApp.',
@@ -198,7 +192,7 @@ void main() {
     },
   );
 
-  testWidgets('el mapa usa OSM con el centro general y sin marcador', (
+  testWidgets('el mapa OSM usa la ubicación confirmada y muestra marcador', (
     tester,
   ) async {
     await tester.pumpWidget(_page(InstitutionalSection.location));
@@ -207,8 +201,8 @@ void main() {
     final map = tester.widget<FlutterMap>(find.byType(FlutterMap));
     final layer = tester.widget<TileLayer>(find.byType(TileLayer));
 
-    expect(map.options.initialCenter, const LatLng(-13.5874347, -72.8662411));
-    expect(map.options.initialZoom, 13);
+    expect(map.options.initialCenter, const LatLng(-13.6219539, -72.8744841));
+    expect(map.options.initialZoom, 16);
     expect(layer.urlTemplate, 'https://tile.openstreetmap.org/{z}/{x}/{y}.png');
     expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
     expect(
@@ -216,18 +210,28 @@ void main() {
       findsOneWidget,
     );
     expect(find.byTooltip('Ver la licencia de OpenStreetMap'), findsOneWidget);
-    expect(find.byType(MarkerLayer), findsNothing);
+    final markers = tester.widget<MarkerLayer>(find.byType(MarkerLayer));
+    expect(markers.markers, hasLength(1));
+    expect(
+      markers.markers.single.point,
+      const LatLng(-13.6219539, -72.8744841),
+    );
+    expect(find.byKey(const Key('verified-school-marker')), findsOneWidget);
   });
 
   testWidgets(
-    'los enlaces externos usan coordenadas y WhatsApp proporcionados',
+    'Google Maps abre el enlace confirmado y rutas sin fijar origen',
     (tester) async {
       final launchedUrls = <String>[];
+      final launchArguments = <Map<Object?, Object?>>[];
       const channel = MethodChannel('plugins.flutter.io/url_launcher');
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
             if (call.method == 'launch') {
               launchedUrls.add(call.arguments['url'] as String);
+              launchArguments.add(
+                Map<Object?, Object?>.from(call.arguments as Map),
+              );
               return true;
             }
             return false;
@@ -243,8 +247,6 @@ void main() {
             section: InstitutionalSection.location,
             onBack: () {},
             onSection: (_) {},
-            verifiedLocation: const LatLng(-13.5, -72.8),
-            verifiedWhatsAppNumber: '+51 987 654 321',
           ),
         ),
       );
@@ -254,28 +256,139 @@ void main() {
       await tester.tap(find.byKey(const Key('view-in-google-maps')));
       await tester.pumpAndSettle();
       await tester.ensureVisible(
+        find.byKey(const ValueKey('location-tab-Cómo Llegar')),
+      );
+      await tester.tap(find.byKey(const ValueKey('location-tab-Cómo Llegar')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
         find.byKey(const ValueKey('location-action-Cómo Llegar')),
       );
       await tester.tap(
         find.byKey(const ValueKey('location-action-Cómo Llegar')),
       );
       await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('location-action-Ruta en Auto')),
+      );
       await tester.tap(
         find.byKey(const ValueKey('location-action-Ruta en Auto')),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('location-action-Contactar')));
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('location-tab-Contacto')),
+      );
+      await tester.tap(find.byKey(const ValueKey('location-tab-Contacto')));
       await tester.pumpAndSettle();
 
-      expect(launchedUrls, hasLength(4));
-      expect(launchedUrls[0], contains('google.com/maps/search/'));
-      expect(launchedUrls[0], contains('query=-13.5%2C-72.8'));
+      expect(launchedUrls, hasLength(3));
+      expect(launchedUrls[0], 'https://maps.app.goo.gl/mdfbYVYQVeHgnG5w6');
       expect(launchedUrls[1], contains('google.com/maps/dir/'));
-      expect(launchedUrls[1], contains('destination=-13.5%2C-72.8'));
+      expect(
+        launchedUrls[1],
+        contains('destination=-13.6219539%2C-72.8744841'),
+      );
+      expect(launchedUrls[1], contains('travelmode=walking'));
+      expect(launchedUrls[1], isNot(contains('origin=')));
+      expect(launchedUrls[2], contains('google.com/maps/dir/'));
+      expect(
+        launchedUrls[2],
+        contains('destination=-13.6219539%2C-72.8744841'),
+      );
       expect(launchedUrls[2], contains('travelmode=driving'));
-      expect(launchedUrls[3], 'https://wa.me/51987654321');
+      expect(launchedUrls[2], isNot(contains('origin=')));
+      expect(launchArguments, hasLength(3));
+      expect(
+        launchArguments.every((arguments) => arguments['useWebView'] == false),
+        isTrue,
+      );
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const ValueKey('location-action-Contactar')),
+            )
+            .onPressed,
+        isNull,
+      );
     },
   );
+
+  testWidgets('las cuatro pestañas de ubicación muestran su contenido', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_page(InstitutionalSection.location));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dirección'), findsOneWidget);
+    expect(find.text('Teléfono'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('location-action-Contactar')),
+      findsOneWidget,
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('location-tab-Cómo Llegar')),
+    );
+    await tester.tap(find.byKey(const ValueKey('location-tab-Cómo Llegar')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('location-tab-description-Cómo Llegar')),
+      findsOneWidget,
+    );
+    expect(find.text('Dirección'), findsOneWidget);
+    expect(find.text('Teléfono'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('location-action-Cómo Llegar')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('location-action-Ruta en Auto')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('location-action-Contactar')),
+      findsNothing,
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('location-tab-Referencias')),
+    );
+    await tester.tap(find.byKey(const ValueKey('location-tab-Referencias')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('location-tab-description-Referencias')),
+      findsOneWidget,
+    );
+    expect(find.text('Dirección'), findsOneWidget);
+    expect(find.text('Teléfono'), findsOneWidget);
+    expect(find.text('Correo institucional'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('location-action-Cómo Llegar')),
+      findsNothing,
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('location-tab-Contacto')),
+    );
+    await tester.tap(find.byKey(const ValueKey('location-tab-Contacto')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('location-tab-description-Contacto')),
+      findsOneWidget,
+    );
+    expect(find.text('Dirección'), findsNothing);
+    expect(find.text('Teléfono'), findsOneWidget);
+    expect(find.text('Correo institucional'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('location-action-Contactar')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('location-action-Cómo Llegar')),
+      findsNothing,
+    );
+    expect(find.byType(FlutterMap), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('las pestañas de ubicación forman una cuadrícula en celular', (
     tester,
@@ -311,7 +424,11 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  for (final size in [const Size(390, 844), const Size(1440, 900)]) {
+  for (final size in [
+    const Size(390, 844),
+    const Size(768, 1024),
+    const Size(1440, 900),
+  ]) {
     testWidgets('ubicación se adapta a viewport $size sin overflow', (
       tester,
     ) async {
@@ -330,6 +447,21 @@ void main() {
         find.byKey(const ValueKey('location-action-Cómo Llegar')),
         findsOneWidget,
       );
+      final actionSize = tester.getSize(
+        find.byKey(const ValueKey('location-action-Cómo Llegar')),
+      );
+      expect(actionSize.width, greaterThan(size.width == 390 ? 300 : 150));
+      await tester.ensureVisible(
+        find.byKey(const Key('location-scroll-end-spacer')),
+      );
+      final spacerBottom = tester
+          .getRect(find.byKey(const Key('location-scroll-end-spacer')))
+          .bottom;
+      final navigationTop = tester
+          .getRect(find.byKey(const Key('institutional-bottom-navigation')))
+          .top;
+      expect(spacerBottom, lessThanOrEqualTo(navigationTop));
+      expect(tester.takeException(), isNull);
     });
   }
 }

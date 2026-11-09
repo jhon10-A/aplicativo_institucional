@@ -32,9 +32,8 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
   final _search = TextEditingController();
 
   LatLng? get _verifiedLocation {
-    final location = widget.verifiedLocation;
-    if (location == null ||
-        !location.latitude.isFinite ||
+    final location = widget.verifiedLocation ?? verifiedInstitutionLocation;
+    if (!location.latitude.isFinite ||
         !location.longitude.isFinite ||
         location.latitude < -90 ||
         location.latitude > 90 ||
@@ -58,12 +57,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
   }
 
   Uri? get _googleMapsUri {
-    final location = _verifiedLocation;
-    if (location == null) return null;
-    return Uri.https('www.google.com', '/maps/search/', {
-      'api': '1',
-      'query': '${location.latitude},${location.longitude}',
-    });
+    return Uri.parse(verifiedInstitutionGoogleMapsUrl);
   }
 
   Uri? get _directionsUri {
@@ -72,6 +66,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
     return Uri.https('www.google.com', '/maps/dir/', {
       'api': '1',
       'destination': '${location.latitude},${location.longitude}',
+      'travelmode': 'walking',
     });
   }
 
@@ -404,16 +399,75 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
               ),
             ),
             const SizedBox(height: 4),
-            _locationInformation(),
-            const SizedBox(height: 8),
-            _locationMap(),
-            const SizedBox(height: 8),
-            _locationActions(),
+            _locationContent(selected),
           ],
         ),
       ),
     ],
   );
+
+  Widget _locationContent(String selected) {
+    final (
+      description,
+      includeAddress,
+      includePhone,
+      includeEmail,
+      actions,
+    ) = switch (selected) {
+      'Cómo Llegar' => (
+        'Consulta la dirección y elige una ruta a pie o en auto.',
+        true,
+        false,
+        false,
+        {'Cómo Llegar', 'Ruta en Auto'},
+      ),
+      'Referencias' => (
+        'Dirección y datos institucionales disponibles.',
+        true,
+        true,
+        true,
+        <String>{},
+      ),
+      'Contacto' => (
+        'Comunícate por teléfono o correo institucional.',
+        false,
+        true,
+        true,
+        {'Contactar'},
+      ),
+      _ => (null, true, true, true, null),
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (description != null) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
+            child: Text(
+              description,
+              key: ValueKey('location-tab-description-$selected'),
+              style: const TextStyle(
+                color: publicNavy,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+        _locationInformation(
+          includeAddress: includeAddress,
+          includePhone: includePhone,
+          includeEmail: includeEmail,
+        ),
+        const SizedBox(height: 8),
+        _locationMap(),
+        if (actions == null || actions.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _locationActions(visibleActions: actions),
+        ],
+      ],
+    );
+  }
 
   Widget _locationTabs(String selected) => LayoutBuilder(
     builder: (context, bounds) {
@@ -499,51 +553,74 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
     );
   }
 
-  Widget _locationInformation() => Column(
-    children: [
-      _referenceDetail(
-        Icons.location_on_outlined,
-        'Dirección',
-        'Av. Micaela Bastidas S/N\nTamburco – Abancay – Apurímac',
-      ),
-      const Divider(height: 1, indent: 50, color: Color(0xFFE7EDF4)),
-      _referenceDetail(Icons.call_outlined, 'Teléfono', '083-482123'),
-      const Divider(height: 1, indent: 50, color: Color(0xFFE7EDF4)),
-      _referenceDetail(
-        Icons.mail_outline,
-        'Correo institucional',
-        'iemicaelabastidas@edu.pe',
-      ),
-    ],
-  );
+  Widget _locationInformation({
+    required bool includeAddress,
+    required bool includePhone,
+    required bool includeEmail,
+  }) {
+    final details = <Widget>[
+      if (includeAddress)
+        _referenceDetail(
+          Icons.location_on_outlined,
+          'Dirección',
+          'Av. Micaela Bastidas S/N\nTamburco – Abancay – Apurímac',
+        ),
+      if (includePhone)
+        _referenceDetail(Icons.call_outlined, 'Teléfono', '083-482123'),
+      if (includeEmail)
+        _referenceDetail(
+          Icons.mail_outline,
+          'Correo institucional',
+          'iemicaelabastidas@edu.pe',
+        ),
+    ];
+    return Column(
+      children: [
+        for (var index = 0; index < details.length; index++) ...[
+          details[index],
+          if (index < details.length - 1)
+            const Divider(height: 1, indent: 50, color: Color(0xFFE7EDF4)),
+        ],
+      ],
+    );
+  }
 
   Widget _referenceDetail(IconData icon, String title, String value) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Container(
-        width: 38,
-        height: 38,
-        decoration: const BoxDecoration(
-          color: Color(0xFF8A063F),
-          shape: BoxShape.circle,
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: const BoxDecoration(
+            color: Color(0xFF8A063F),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white, size: 21),
         ),
-        child: Icon(icon, color: Colors.white, size: 21),
       ),
       const SizedBox(width: 12),
       Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: publicNavy,
-                fontWeight: FontWeight.w800,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: publicNavy,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-            const SizedBox(height: 3),
-            Text(value, style: const TextStyle(color: publicNavy, height: 1.4)),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(color: publicNavy, height: 1.45),
+              ),
+            ],
+          ),
         ),
       ),
     ],
@@ -600,36 +677,44 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
     },
   );
 
-  Widget _locationActions() => LayoutBuilder(
+  Widget _locationActions({Set<String>? visibleActions}) => LayoutBuilder(
     builder: (context, bounds) {
-      final columns = bounds.maxWidth >= 320 ? 3 : 1;
+      final columns = bounds.maxWidth >= 680
+          ? 3
+          : bounds.maxWidth >= 420
+          ? 2
+          : 1;
       final width = (bounds.maxWidth - 8 * (columns - 1)) / columns;
-      final actions = [
-        (
-          'Cómo Llegar',
-          'Abre en Google Maps',
-          'Disponible cuando se confirmen las coordenadas exactas del colegio.',
-          Icons.navigation,
-          const Color(0xFF800638),
-          _directionsUri,
-        ),
-        (
-          'Ruta en Auto',
-          'Desde tu ubicación',
-          'Disponible cuando se confirmen las coordenadas exactas del colegio.',
-          Icons.directions_car,
-          const Color(0xFF0875C9),
-          _drivingRouteUri,
-        ),
-        (
-          'Contactar',
-          'Por WhatsApp',
-          'Disponible cuando se confirme el número oficial de WhatsApp.',
-          Icons.chat,
-          const Color(0xFF138A49),
-          _whatsAppUri,
-        ),
-      ];
+      final actions =
+          [
+            (
+              'Cómo Llegar',
+              'Abre en Google Maps',
+              'Disponible cuando se confirmen las coordenadas exactas del colegio.',
+              Icons.navigation,
+              const Color(0xFF800638),
+              _directionsUri,
+            ),
+            (
+              'Ruta en Auto',
+              'Desde tu ubicación',
+              'Disponible cuando se confirmen las coordenadas exactas del colegio.',
+              Icons.directions_car,
+              const Color(0xFF0875C9),
+              _drivingRouteUri,
+            ),
+            (
+              'Contactar',
+              'Por WhatsApp',
+              'Disponible cuando se confirme el número oficial de WhatsApp.',
+              Icons.chat,
+              const Color(0xFF138A49),
+              _whatsAppUri,
+            ),
+          ].where(
+            (action) =>
+                visibleActions == null || visibleActions.contains(action.$1),
+          );
       return Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -637,7 +722,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
           for (final action in actions)
             SizedBox(
               width: width,
-              height: 54,
+              height: 68,
               child: Tooltip(
                 message: action.$6 == null ? action.$3 : action.$2,
                 child: FilledButton(
@@ -678,15 +763,18 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w800,
-                                  fontSize: 11,
+                                  fontSize: 14,
                                 ),
                               ),
-                              const SizedBox(height: 1),
+                              const SizedBox(height: 2),
                               Text(
                                 action.$2,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 8, height: 1),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  height: 1.1,
+                                ),
                               ),
                             ],
                           ),
