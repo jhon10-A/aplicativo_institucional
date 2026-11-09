@@ -5,8 +5,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// Approximate center of Tamburco, not the institution's verified coordinates.
-const _tamburcoCenter = LatLng(-13.5874347, -72.8662411);
+const verifiedInstitutionLocation = LatLng(-13.6219539, -72.8744841);
+const verifiedInstitutionGoogleMapsUrl =
+    'https://maps.app.goo.gl/mdfbYVYQVeHgnG5w6';
 
 class OpenStreetMapView extends StatelessWidget {
   const OpenStreetMapView({
@@ -24,8 +25,8 @@ class OpenStreetMapView extends StatelessWidget {
     height: height,
     child: FlutterMap(
       options: MapOptions(
-        initialCenter: verifiedLocation ?? _tamburcoCenter,
-        initialZoom: 13,
+        initialCenter: verifiedLocation ?? verifiedInstitutionLocation,
+        initialZoom: 16,
         minZoom: 3,
         maxZoom: 19,
       ),
@@ -39,18 +40,39 @@ class OpenStreetMapView extends StatelessWidget {
             markers: [
               Marker(
                 point: location,
-                width: 40,
-                height: 48,
-                child: const Icon(
-                  Icons.location_pin,
-                  color: Color(0xFFD52B3F),
-                  size: 42,
+                width: 52,
+                height: 58,
+                child: Semantics(
+                  label: 'I.E. Micaela Bastidas Puyucahua',
+                  child: Container(
+                    key: const Key('verified-school-marker'),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFF2BD36),
+                        width: 2,
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x44000000),
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.location_pin,
+                      color: Color(0xFF800638),
+                      size: 42,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
         Align(
-            alignment: Alignment.bottomLeft,
+          alignment: Alignment.bottomLeft,
           child: Container(
             key: const Key('open-street-map-attribution'),
             constraints: const BoxConstraints(maxWidth: 220),
