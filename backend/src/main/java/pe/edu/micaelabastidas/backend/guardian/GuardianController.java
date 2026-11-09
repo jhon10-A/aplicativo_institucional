@@ -18,12 +18,14 @@ public class GuardianController {
     private final GuardianChildrenService children;
     private final GuardianGradesService grades;
     private final GuardianAttendanceService attendance;
+    private final GuardianAnnouncementsService announcements;
 
     public GuardianController(GuardianChildrenService children, GuardianGradesService grades,
-            GuardianAttendanceService attendance) {
+            GuardianAttendanceService attendance, GuardianAnnouncementsService announcements) {
         this.children = children;
         this.grades = grades;
         this.attendance = attendance;
+        this.announcements = announcements;
     }
 
     @GetMapping("/hijos")
@@ -44,6 +46,13 @@ public class GuardianController {
             @AuthenticationPrincipal Jwt jwt, @PathVariable long estudianteId) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(attendance.attendance(Long.parseLong(jwt.getSubject()), estudianteId));
+    }
+
+    @GetMapping("/comunicados")
+    public ResponseEntity<List<GuardianAnnouncementsService.Announcement>> announcements(
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(announcements.announcements(Long.parseLong(jwt.getSubject())));
     }
 
     @ExceptionHandler(GuardianAccess.NotGuardian.class)
