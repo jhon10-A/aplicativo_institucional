@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
 
 import '../../../auth.dart';
+import '../guardian_api.dart';
 import '../guardian_section.dart';
 import '../widgets/guardian_development_section.dart';
 import '../widgets/guardian_home.dart';
 import '../widgets/guardian_navigation.dart';
+import 'guardian_children_screen.dart';
 
 class GuardianPanel extends StatefulWidget {
   const GuardianPanel({
     super.key,
     required this.session,
     required this.onLogout,
+    this.api,
   });
   final Session session;
   final VoidCallback onLogout;
+
+  /// Solo para pruebas: permite inyectar una API simulada.
+  final GuardianApi? api;
 
   @override
   State<GuardianPanel> createState() => _GuardianPanelState();
@@ -21,6 +27,18 @@ class GuardianPanel extends StatefulWidget {
 
 class _GuardianPanelState extends State<GuardianPanel> {
   GuardianSection _section = GuardianSection.inicio;
+  late final GuardianApi _api =
+      widget.api ??
+      GuardianApi(
+        baseUrl: const String.fromEnvironment('API_BASE_URL'),
+        token: widget.session.accessToken,
+      );
+
+  @override
+  void dispose() {
+    _api.close();
+    super.dispose();
+  }
 
   void _select(GuardianSection section) => setState(() => _section = section);
 
@@ -98,6 +116,8 @@ class _GuardianPanelState extends State<GuardianPanel> {
                 Expanded(
                   child: _section == GuardianSection.inicio
                       ? GuardianHome(session: widget.session, onSelect: _select)
+                      : _section == GuardianSection.hijos
+                      ? GuardianChildrenScreen(api: _api)
                       : GuardianDevelopmentSection(
                           section: _section,
                           onHome: () => _select(GuardianSection.inicio),

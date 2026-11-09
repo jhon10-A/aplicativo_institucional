@@ -30,8 +30,9 @@ void main() {
     expect(find.text('Panel del apoderado'), findsOneWidget);
     expect(find.text('Roles: APODERADO'), findsOneWidget);
     expect(find.text('isolated-test-token'), findsNothing);
+    // "Mis hijos" ya tiene pantalla real y se prueba en guardian_children_test.dart.
     for (final section in GuardianSection.values.where(
-      (s) => s != GuardianSection.inicio,
+      (s) => s != GuardianSection.inicio && s != GuardianSection.hijos,
     )) {
       await tester.tap(find.byTooltip('Abrir navegación'));
       await tester.pumpAndSettle();
