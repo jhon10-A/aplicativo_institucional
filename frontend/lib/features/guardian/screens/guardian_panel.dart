@@ -6,6 +6,7 @@ import '../guardian_section.dart';
 import '../widgets/guardian_development_section.dart';
 import '../widgets/guardian_home.dart';
 import '../widgets/guardian_navigation.dart';
+import 'guardian_attendance_screen.dart';
 import 'guardian_children_screen.dart';
 import 'guardian_grades_screen.dart';
 
@@ -121,6 +122,8 @@ class _GuardianPanelState extends State<GuardianPanel> {
                       ? GuardianChildrenScreen(api: _api)
                       : _section == GuardianSection.calificaciones
                       ? GuardianGradesScreen(api: _api)
+                      : _section == GuardianSection.asistencia
+                      ? GuardianAttendanceScreen(api: _api)
                       : GuardianDevelopmentSection(
                           section: _section,
                           onHome: () => _select(GuardianSection.inicio),

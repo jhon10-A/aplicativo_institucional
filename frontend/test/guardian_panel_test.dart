@@ -35,7 +35,8 @@ void main() {
       (s) =>
           s != GuardianSection.inicio &&
           s != GuardianSection.hijos &&
-          s != GuardianSection.calificaciones,
+          s != GuardianSection.calificaciones &&
+          s != GuardianSection.asistencia,
     )) {
       await tester.tap(find.byTooltip('Abrir navegación'));
       await tester.pumpAndSettle();
