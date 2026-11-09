@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'guardian_announcement.dart';
 import 'guardian_attendance.dart';
 import 'guardian_child.dart';
 import 'guardian_grade.dart';
@@ -127,6 +128,18 @@ class GuardianApi {
     try {
       return body
           .map((e) => GuardianAttendance.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false);
+    } on TypeError {
+      throw const GuardianFailure(GuardianFailureKind.invalid);
+    }
+  }
+
+  Future<List<GuardianAnnouncement>> announcements() async {
+    final body = await _get('/api/apoderado/comunicados');
+    if (body is! List) throw const GuardianFailure(GuardianFailureKind.invalid);
+    try {
+      return body
+          .map((e) => GuardianAnnouncement.fromJson(e as Map<String, dynamic>))
           .toList(growable: false);
     } on TypeError {
       throw const GuardianFailure(GuardianFailureKind.invalid);
