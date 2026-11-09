@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'access_profile.dart';
 import 'auth.dart';
+import 'features/guardian/screens/guardian_panel.dart';
 import 'features/student/screens/student_panel.dart';
 import 'screens/home_page.dart';
 import 'screens/login_page.dart';
@@ -57,6 +58,10 @@ class _MyAppState extends State<MyApp> {
         _session != null &&
         _access == AccessProfile.estudiante &&
         _session!.roles.contains('ESTUDIANTE');
+    final guardianSession =
+        _session != null &&
+        _access == AccessProfile.apoderado &&
+        _session!.roles.contains('APODERADO');
     return MaterialApp(
       title: 'I.E. Micaela Bastidas Puyucahua',
       debugShowCheckedModeBanner: false,
@@ -80,11 +85,13 @@ class _MyAppState extends State<MyApp> {
       home: PopScope(
         canPop: _access == null && !_technology && _session == null,
         onPopInvokedWithResult: (didPop, result) {
-          if (!didPop && !studentSession) _home();
+          if (!didPop && !studentSession && !guardianSession) _home();
         },
         child: _session != null
             ? studentSession
                   ? StudentPanel(session: _session!, onLogout: _home)
+                  : guardianSession
+                  ? GuardianPanel(session: _session!, onLogout: _home)
                   : SessionPage(session: _session!, onLogout: _home)
             : _access != null
             ? LoginPage(
