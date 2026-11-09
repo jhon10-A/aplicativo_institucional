@@ -17,10 +17,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class GuardianController {
     private final GuardianChildrenService children;
     private final GuardianGradesService grades;
+    private final GuardianAttendanceService attendance;
 
-    public GuardianController(GuardianChildrenService children, GuardianGradesService grades) {
+    public GuardianController(GuardianChildrenService children, GuardianGradesService grades,
+            GuardianAttendanceService attendance) {
         this.children = children;
         this.grades = grades;
+        this.attendance = attendance;
     }
 
     @GetMapping("/hijos")
@@ -34,6 +37,13 @@ public class GuardianController {
             @PathVariable long estudianteId) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(grades.grades(Long.parseLong(jwt.getSubject()), estudianteId));
+    }
+
+    @GetMapping("/hijos/{estudianteId}/asistencia")
+    public ResponseEntity<List<GuardianAttendanceService.Attendance>> attendance(
+            @AuthenticationPrincipal Jwt jwt, @PathVariable long estudianteId) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(attendance.attendance(Long.parseLong(jwt.getSubject()), estudianteId));
     }
 
     @ExceptionHandler(GuardianAccess.NotGuardian.class)
