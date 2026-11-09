@@ -57,6 +57,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
   }
 
   Uri? get _googleMapsUri {
+    if (_verifiedLocation == null) return null;
     return Uri.parse(verifiedInstitutionGoogleMapsUrl);
   }
 
@@ -337,40 +338,59 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
   Widget _locationPage(String selected) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Row(
-        children: [
-          Container(
-            width: 62,
-            height: 62,
-            decoration: const BoxDecoration(
-              color: publicWine,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.location_on, color: Colors.white, size: 36),
-          ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Ubicación',
-                  style: TextStyle(
-                    color: publicNavy,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                  ),
+      LayoutBuilder(
+        builder: (context, bounds) {
+          final compact = bounds.maxWidth < 420;
+          final iconSize = compact ? 48.0 : 62.0;
+          final illustrationWidth = compact ? 64.0 : 88.0;
+          final illustrationHeight = compact ? 54.0 : 72.0;
+          return Row(
+            children: [
+              Container(
+                width: iconSize,
+                height: iconSize,
+                decoration: const BoxDecoration(
+                  color: publicWine,
+                  shape: BoxShape.circle,
                 ),
-                Text(
-                  'Encuentra nuestra institución en el mapa y conoce cómo llegar.',
-                  style: TextStyle(color: publicNavy, height: 1.35),
+                child: Icon(
+                  Icons.location_on,
+                  color: Colors.white,
+                  size: compact ? 30 : 36,
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          const LocationHeaderIllustration(),
-        ],
+              ),
+              SizedBox(width: compact ? 10 : 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ubicación',
+                      style: TextStyle(
+                        color: publicNavy,
+                        fontSize: compact ? 24 : 28,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      'Encuentra nuestra institución en el mapa y conoce cómo llegar.',
+                      style: TextStyle(
+                        color: publicNavy,
+                        height: 1.35,
+                        fontSize: compact ? 12 : 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: compact ? 6 : 8),
+              LocationHeaderIllustration(
+                width: illustrationWidth,
+                height: illustrationHeight,
+              ),
+            ],
+          );
+        },
       ),
       const SizedBox(height: 18),
       _locationTabs(selected),
@@ -475,7 +495,8 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
       final columns = bounds.maxWidth < 620 ? 2 : 4;
       final width = (bounds.maxWidth - 8 * (columns - 1)) / columns;
       final buttons = [
-        for (final tab in tabs) _locationTab(tab, selected, width),
+        for (final tab in tabs)
+          _locationTab(tab, selected, width, height: columns == 2 ? 48 : 42),
       ];
       return columns == 2
           ? Wrap(spacing: 8, runSpacing: 8, children: buttons)
@@ -493,7 +514,12 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
     },
   );
 
-  Widget _locationTab(String tab, String selected, double width) {
+  Widget _locationTab(
+    String tab,
+    String selected,
+    double width, {
+    required double height,
+  }) {
     final icon = switch (tab) {
       'Nuestra Ubicación' => Icons.location_on,
       'Cómo Llegar' => Icons.alt_route,
@@ -504,7 +530,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
     return SizedBox(
       key: ValueKey('location-tab-$tab'),
       width: width,
-      height: 42,
+      height: height,
       child: Semantics(
         button: true,
         selected: isSelected,
@@ -628,7 +654,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
 
   Widget _locationMap() => LayoutBuilder(
     builder: (context, bounds) {
-      final mapHeight = (bounds.maxWidth * .33).clamp(120.0, 210.0);
+      final mapHeight = (bounds.maxWidth * .35).clamp(190.0, 280.0);
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Stack(
@@ -705,8 +731,10 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
             ),
             (
               'Contactar',
-              'Por WhatsApp',
-              'Disponible cuando se confirme el número oficial de WhatsApp.',
+              _whatsAppUri == null
+                  ? 'Número oficial no confirmado'
+                  : 'Por WhatsApp',
+              'WhatsApp deshabilitado: no hay número oficial confirmado.',
               Icons.chat,
               const Color(0xFF138A49),
               _whatsAppUri,
@@ -733,8 +761,8 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
                   style: FilledButton.styleFrom(
                     backgroundColor: action.$5,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: action.$5,
-                    disabledForegroundColor: Colors.white,
+                    disabledBackgroundColor: const Color(0xFFE9EDF2),
+                    disabledForegroundColor: const Color(0xFF667085),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 6,

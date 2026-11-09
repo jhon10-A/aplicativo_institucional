@@ -181,11 +181,11 @@ void main() {
       );
       expect(find.text('Abre en Google Maps'), findsOneWidget);
       expect(find.text('Desde tu ubicación'), findsOneWidget);
-      expect(find.text('Por WhatsApp'), findsOneWidget);
+      expect(find.text('Número oficial no confirmado'), findsOneWidget);
       expect(find.textContaining('Número oficial pendiente'), findsNothing);
       expect(
         find.byTooltip(
-          'Disponible cuando se confirme el número oficial de WhatsApp.',
+          'WhatsApp deshabilitado: no hay número oficial confirmado.',
         ),
         findsOneWidget,
       );
@@ -202,7 +202,7 @@ void main() {
     final layer = tester.widget<TileLayer>(find.byType(TileLayer));
 
     expect(map.options.initialCenter, const LatLng(-13.6219539, -72.8744841));
-    expect(map.options.initialZoom, 16);
+    expect(map.options.initialZoom, 17.5);
     expect(layer.urlTemplate, 'https://tile.openstreetmap.org/{z}/{x}/{y}.png');
     expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
     expect(
@@ -217,6 +217,47 @@ void main() {
       const LatLng(-13.6219539, -72.8744841),
     );
     expect(find.byKey(const Key('verified-school-marker')), findsOneWidget);
+  });
+
+  testWidgets('WhatsApp se habilita solo con un número confirmado', (
+    tester,
+  ) async {
+    String? launchedUrl;
+    const channel = MethodChannel('plugins.flutter.io/url_launcher');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          if (call.method == 'launch') {
+            launchedUrl = call.arguments['url'] as String;
+            return true;
+          }
+          return false;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null),
+    );
+
+    await tester.pumpWidget(
+      _page(
+        InstitutionalSection.location,
+        verifiedWhatsAppNumber: '+51 (987) 654-321',
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('location-tab-Contacto')));
+    await tester.pumpAndSettle();
+
+    final contactButton = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('location-action-Contactar')),
+    );
+    expect(contactButton.onPressed, isNotNull);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('location-action-Contactar')),
+    );
+    await tester.tap(find.byKey(const ValueKey('location-action-Contactar')));
+    await tester.pumpAndSettle();
+
+    expect(launchedUrl, 'https://wa.me/51987654321');
   });
 
   testWidgets(
@@ -425,6 +466,7 @@ void main() {
   });
 
   for (final size in [
+    const Size(320, 568),
     const Size(390, 844),
     const Size(768, 1024),
     const Size(1440, 900),
@@ -443,6 +485,10 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.byType(FlutterMap), findsOneWidget);
       expect(find.byKey(const Key('view-in-google-maps')), findsOneWidget);
+      expect(
+        tester.getSize(find.byKey(const Key('open-street-map'))).height,
+        greaterThanOrEqualTo(190),
+      );
       expect(
         find.byKey(const ValueKey('location-action-Cómo Llegar')),
         findsOneWidget,
@@ -469,11 +515,13 @@ void main() {
 Widget _page(
   InstitutionalSection section, {
   List<InstitutionalPublication> publications = const [],
+  String? verifiedWhatsAppNumber,
 }) => MaterialApp(
   home: InstitutionalPage(
     section: section,
     onBack: () {},
     onSection: (_) {},
     publications: publications,
+    verifiedWhatsAppNumber: verifiedWhatsAppNumber,
   ),
 );
