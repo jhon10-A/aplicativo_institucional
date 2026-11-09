@@ -8,6 +8,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -15,15 +16,24 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/apoderado")
 public class GuardianController {
     private final GuardianChildrenService children;
+    private final GuardianGradesService grades;
 
-    public GuardianController(GuardianChildrenService children) {
+    public GuardianController(GuardianChildrenService children, GuardianGradesService grades) {
         this.children = children;
+        this.grades = grades;
     }
 
     @GetMapping("/hijos")
     public ResponseEntity<List<GuardianChildrenService.Child>> children(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(children.children(Long.parseLong(jwt.getSubject())));
+    }
+
+    @GetMapping("/hijos/{estudianteId}/calificaciones")
+    public ResponseEntity<List<GuardianGradesService.Grade>> grades(@AuthenticationPrincipal Jwt jwt,
+            @PathVariable long estudianteId) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(grades.grades(Long.parseLong(jwt.getSubject()), estudianteId));
     }
 
     @ExceptionHandler(GuardianAccess.NotGuardian.class)
