@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../access_profile.dart';
 import '../auth.dart';
+import '../features/institutional/student_access_view.dart';
 import '../widgets/institutional_brand.dart';
 import '../widgets/login_form.dart';
 
@@ -18,68 +19,70 @@ class LoginPage extends StatelessWidget {
   final ValueChanged<Session> onLogin;
   final VoidCallback onBack;
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFFECF5FD),
-    body: SafeArea(
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            InstitutionalHeader(
-              onBack: onBack,
-              wine: access == AccessProfile.estudiante,
-            ),
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final form = _form(context);
-                      if (constraints.maxWidth < 640) return form;
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    access.icon,
-                                    size: 100,
-                                    color: access.color,
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Text(
-                                    access.motto,
-                                    textAlign: TextAlign.center,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineMedium
-                                        ?.copyWith(
-                                          color: institutionalWine,
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Expanded(flex: 2, child: form),
-                        ],
-                      );
-                    },
+  Widget build(BuildContext context) => access == AccessProfile.estudiante
+      ? StudentAccessView(api: api, onLogin: onLogin, onBack: onBack)
+      : Scaffold(
+          backgroundColor: const Color(0xFFECF5FD),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  InstitutionalHeader(
+                    onBack: onBack,
+                    wine: access == AccessProfile.estudiante,
                   ),
-                ),
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 900),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final form = _form(context);
+                            if (constraints.maxWidth < 640) return form;
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          access.icon,
+                                          size: 100,
+                                          color: access.color,
+                                        ),
+                                        const SizedBox(height: 20),
+                                        Text(
+                                          access.motto,
+                                          textAlign: TextAlign.center,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .headlineMedium
+                                              ?.copyWith(
+                                                color: institutionalWine,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Expanded(flex: 2, child: form),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  const InstitutionalFooter(),
+                ],
               ),
             ),
-            const InstitutionalFooter(),
-          ],
-        ),
-      ),
-    ),
-  );
+          ),
+        );
 
   Widget _form(BuildContext context) => Card(
     elevation: 3,

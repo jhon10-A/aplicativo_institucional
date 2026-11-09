@@ -13,8 +13,8 @@ import 'package:aplicativo_institucional/widgets/login_form.dart';
 import 'auth_test.dart' show responseFixture;
 
 Future<void> openAccess(WidgetTester tester, String label) async {
-  await tester.ensureVisible(find.text(label));
-  await tester.tap(find.text(label));
+  await tester.ensureVisible(find.byTooltip(label));
+  await tester.tap(find.byTooltip(label));
   await tester.pumpAndSettle();
 }
 
@@ -77,7 +77,7 @@ void main() {
       expect(find.text('Roles: ${access.value}'), findsOneWidget);
       await tester.tap(find.text('Cerrar sesión'));
       await tester.pumpAndSettle();
-      expect(find.text('¡Bienvenidos!'), findsOneWidget);
+      expect(find.byTooltip('Menú institucional'), findsOneWidget);
     }
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -100,7 +100,7 @@ void main() {
     expect(requests, 0);
     await tester.tap(find.text('Volver al inicio'));
     await tester.pumpAndSettle();
-    expect(find.text('¡Bienvenidos!'), findsOneWidget);
+    expect(find.byTooltip('Menú institucional'), findsOneWidget);
   });
 
   testWidgets(
@@ -127,7 +127,7 @@ void main() {
       await tester.pumpAndSettle();
       pending.complete(http.Response(jsonEncode(responseFixture()), 200));
       await tester.pumpAndSettle();
-      expect(find.text('¡Bienvenidos!'), findsOneWidget);
+      expect(find.byTooltip('Menú institucional'), findsOneWidget);
       expect(find.text('Cerrar sesión'), findsNothing);
     },
   );
