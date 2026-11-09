@@ -1,3 +1,5 @@
+import '../widgets/student_presentation.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -210,10 +212,14 @@ class _StudentSubmissionScreenState extends State<StudentSubmissionScreen> {
         child: Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
+            constraints: const BoxConstraints(maxWidth: 1120),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                StudentSectionHeading(
+                  title: _view ? 'Mi entrega' : 'Entregar tarea',
+                  icon: Icons.upload_file_outlined,
+                ),
                 Text(
                   widget.task.titulo,
                   style: Theme.of(context).textTheme.titleLarge,

@@ -1,3 +1,6 @@
+import '../student_enrollment_selection.dart';
+import '../widgets/student_presentation.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -12,10 +15,16 @@ class StudentCoursesScreen extends StatefulWidget {
     required this.apiFactory,
     required this.onUnauthorized,
     required this.onHome,
+    this.initialEnrollmentId,
+    this.initialAssignmentId,
+    this.onEnrollmentChanged,
   });
   final StudentApi Function() apiFactory;
   final VoidCallback onUnauthorized;
   final VoidCallback onHome;
+  final int? initialEnrollmentId;
+  final int? initialAssignmentId;
+  final ValueChanged<int?>? onEnrollmentChanged;
 
   @override
   State<StudentCoursesScreen> createState() => _StudentCoursesScreenState();
@@ -39,7 +48,20 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
     unawaited(_load());
   }
 
+  @override
+  void didUpdateWidget(covariant StudentCoursesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final id = widget.initialEnrollmentId;
+    if (id != null &&
+        id != oldWidget.initialEnrollmentId &&
+        id != _selected &&
+        _enrollments.any((m) => m.id == id)) {
+      unawaited(_load(enrollment: id));
+    }
+  }
+
   Future<void> _load({int? enrollment, int? assignment}) async {
+    if (enrollment != null) widget.onEnrollmentChanged?.call(enrollment);
     final generation = ++_generation;
     setState(() {
       _selected = enrollment;
@@ -57,6 +79,18 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
             .toList();
         if (!mounted || generation != _generation) return;
         setState(() => _enrollments = enrollments);
+        final selected = resolveStudentEnrollment(
+          enrollments,
+          widget.initialEnrollmentId,
+        );
+        widget.onEnrollmentChanged?.call(selected);
+        if (selected != null) {
+          await _load(
+            enrollment: selected,
+            assignment: widget.initialAssignmentId,
+          );
+          return;
+        }
       } else if (assignment == null) {
         final data = await _api.get('matriculas/$enrollment/cursos') as List;
         final courses = data
@@ -122,13 +156,13 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
     child: Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
+        constraints: const BoxConstraints(maxWidth: 1120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              _requested == null ? 'Mis cursos' : 'Detalle del curso',
-              style: Theme.of(context).textTheme.headlineSmall,
+            StudentSectionHeading(
+              title: _requested == null ? 'Mis cursos' : 'Detalle del curso',
+              icon: Icons.menu_book_outlined,
             ),
             const SizedBox(height: 16),
             if (_enrollments.isNotEmpty)
@@ -138,6 +172,11 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Matrícula y periodo',
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 hint: const Text('Selecciona una matrícula'),
                 items: [

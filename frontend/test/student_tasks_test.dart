@@ -1,3 +1,5 @@
+import 'student_test_navigation.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -66,6 +68,13 @@ void main() {
       of: find.text(label),
       matching: find.byType(DropdownButtonFormField<int>),
     );
+    final desired = int.tryParse(text.split(' ').first);
+    if (label == 'Matrícula y periodo' &&
+        desired != null &&
+        tester.widget<DropdownButtonFormField<int>>(dropdown).initialValue ==
+            desired) {
+      return;
+    }
     await tester.ensureVisible(dropdown);
     await tester.tap(dropdown);
     await tester.pumpAndSettle();
@@ -249,10 +258,11 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('student-shortcut-tareas')));
     await tester.pumpAndSettle();
+    await openCompleteStudentSection(tester, 'tareas');
     expect(find.byType(StudentTasksScreen), findsOneWidget);
     await tester.tap(find.text('Volver al inicio del panel'));
     await tester.pumpAndSettle();
-    expect(find.text('Panel del estudiante'), findsOneWidget);
+    expect(find.text('Hola,'), findsOneWidget);
   });
 
   for (final size in [

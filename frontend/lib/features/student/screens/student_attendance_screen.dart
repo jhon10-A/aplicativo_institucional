@@ -1,3 +1,6 @@
+import '../student_enrollment_selection.dart';
+import '../widgets/student_presentation.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -13,10 +16,16 @@ class StudentAttendanceScreen extends StatefulWidget {
     required this.apiFactory,
     required this.onUnauthorized,
     required this.onHome,
+    this.initialEnrollmentId,
+    this.initialRecordId,
+    this.onEnrollmentChanged,
   });
   final StudentApi Function() apiFactory;
   final VoidCallback onUnauthorized;
   final VoidCallback onHome;
+  final int? initialEnrollmentId;
+  final int? initialRecordId;
+  final ValueChanged<int?>? onEnrollmentChanged;
   @override
   State<StudentAttendanceScreen> createState() =>
       _StudentAttendanceScreenState();
@@ -56,7 +65,20 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(covariant StudentAttendanceScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final id = widget.initialEnrollmentId;
+    if (id != null &&
+        id != oldWidget.initialEnrollmentId &&
+        id != _enrollment &&
+        _enrollments.any((m) => m.id == id)) {
+      unawaited(_load(enrollment: id));
+    }
+  }
+
   Future<void> _load({int? enrollment, int course = 0, int? record}) async {
+    if (enrollment != null) widget.onEnrollmentChanged?.call(enrollment);
     final generation = ++_generation;
     setState(() {
       if (_enrollment != enrollment) _courses = [];
@@ -77,6 +99,15 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
             .toList();
         if (!mounted || generation != _generation) return;
         setState(() => _enrollments = enrollments);
+        final selected = resolveStudentEnrollment(
+          enrollments,
+          widget.initialEnrollmentId,
+        );
+        widget.onEnrollmentChanged?.call(selected);
+        if (selected != null) {
+          await _load(enrollment: selected, record: widget.initialRecordId);
+          return;
+        }
       } else if (record == null) {
         final data = await _api.get('matriculas/$enrollment/cursos') as List;
         final courses = data
@@ -172,13 +203,15 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
     child: Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
+        constraints: const BoxConstraints(maxWidth: 1120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              _record == null ? 'Mis asistencias' : 'Detalle de la asistencia',
-              style: Theme.of(context).textTheme.headlineSmall,
+            StudentSectionHeading(
+              title: _record == null
+                  ? 'Mis asistencias'
+                  : 'Detalle de la asistencia',
+              icon: Icons.fact_check_outlined,
             ),
             const SizedBox(height: 8),
             const Text('Solo se cuentan registros de asistencia existentes.'),
@@ -190,6 +223,11 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Matrícula y periodo',
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 hint: const Text('Selecciona una matrícula'),
                 items: [

@@ -1,3 +1,5 @@
+import 'student_test_navigation.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -51,6 +53,14 @@ void main() {
     headers: {'content-type': 'application/json; charset=utf-8'},
   );
   Future<void> select(WidgetTester tester, String period) async {
+    if (tester
+            .widget<DropdownButtonFormField<int>>(
+              find.byType(DropdownButtonFormField<int>),
+            )
+            .initialValue ==
+        int.parse(period)) {
+      return;
+    }
     await tester.tap(find.byType(DropdownButtonFormField<int>));
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('$period ·').last);
@@ -215,13 +225,18 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('student-shortcut-cursos')),
+    );
     await tester.tap(find.byKey(const ValueKey('student-shortcut-cursos')));
     await tester.pumpAndSettle();
+    await openCompleteStudentSection(tester, 'cursos');
     expect(find.byType(StudentCoursesScreen), findsOneWidget);
     expect(find.text('No tienes matrículas registradas.'), findsOneWidget);
     await tester.tap(find.text('Volver al inicio del panel'));
     await tester.pumpAndSettle();
-    expect(find.text('Panel del estudiante'), findsOneWidget);
+    expect(find.text('Hola,'), findsOneWidget);
   });
 
   for (final size in [

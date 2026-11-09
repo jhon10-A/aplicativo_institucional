@@ -1,3 +1,5 @@
+import '../widgets/student_presentation.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -128,13 +130,15 @@ class _StudentNoticesScreenState extends State<StudentNoticesScreen> {
     child: Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
+        constraints: const BoxConstraints(maxWidth: 1120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              _notice == null ? 'Mis comunicados' : 'Detalle del comunicado',
-              style: Theme.of(context).textTheme.headlineSmall,
+            StudentSectionHeading(
+              title: _notice == null
+                  ? 'Mis comunicados'
+                  : 'Detalle del comunicado',
+              icon: Icons.campaign_outlined,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<int>(

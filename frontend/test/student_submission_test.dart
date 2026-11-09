@@ -286,10 +286,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(DropdownButtonFormField<int>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('2026 ·').last);
-    await tester.pumpAndSettle();
+    // The sole enrollment is selected automatically, so the task is ready.
+    expect(find.text('Selecciona una matrícula'), findsNothing);
     await tester.tap(find.text('Álgebra'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Entregar tarea'));

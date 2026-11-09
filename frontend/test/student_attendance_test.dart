@@ -73,6 +73,13 @@ void main() {
       of: find.text(label),
       matching: find.byType(DropdownButtonFormField<int>),
     );
+    final desired = int.tryParse(text.split(' ').first);
+    if (label == 'Matrícula y periodo' &&
+        desired != null &&
+        tester.widget<DropdownButtonFormField<int>>(dropdown).initialValue ==
+            desired) {
+      return;
+    }
     await tester.ensureVisible(dropdown);
     await tester.tap(dropdown);
     await tester.pumpAndSettle();
@@ -366,18 +373,18 @@ void main() {
         ),
       ),
     );
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('student-shortcut-asistencia')),
-    );
+    await tester.pumpAndSettle();
     expect(
-      find.text('Consulta tu asistencia por curso y fechas'),
-      findsOneWidget,
+      find.byKey(const ValueKey('student-shortcut-asistencia')),
+      findsNothing,
     );
-    await tester.tap(find.byKey(const ValueKey('student-shortcut-asistencia')));
+    await tester.tap(find.byTooltip('Abrir navegación'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('student-nav-asistencia')));
     await tester.pumpAndSettle();
     expect(find.byType(StudentAttendanceScreen), findsOneWidget);
     await tap(tester, 'Volver al inicio del panel');
-    expect(find.text('Panel del estudiante'), findsOneWidget);
+    expect(find.text('Hola,'), findsOneWidget);
   });
 
   for (final size in [

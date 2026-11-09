@@ -250,19 +250,14 @@ void main() {
       ),
     );
     await tester.ensureVisible(
-      find.byKey(const ValueKey('student-shortcut-comunicados')),
+      find.byKey(const ValueKey('student-bottom-comunicados')),
     );
-    expect(
-      find.text('Consulta los comunicados para estudiantes'),
-      findsOneWidget,
-    );
-    await tester.tap(
-      find.byKey(const ValueKey('student-shortcut-comunicados')),
-    );
+    expect(find.text('Notificaciones'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('student-bottom-comunicados')));
     await tester.pumpAndSettle();
     expect(find.byType(StudentNoticesScreen), findsOneWidget);
     await tap(tester, 'Volver al inicio del panel');
-    expect(find.text('Panel del estudiante'), findsOneWidget);
+    expect(find.text('Hola,'), findsOneWidget);
   });
 
   for (final size in [

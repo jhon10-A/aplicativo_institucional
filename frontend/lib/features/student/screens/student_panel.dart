@@ -1,15 +1,18 @@
+import '../widgets/student_quick_view.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../auth.dart';
 import '../student_section.dart';
 import '../student_api.dart';
+import '../student_theme.dart';
+import '../widgets/student_presentation.dart';
 import 'student_profile_screen.dart';
 import 'student_courses_screen.dart';
 import 'student_tasks_screen.dart';
 import 'student_grades_screen.dart';
 import 'student_attendance_screen.dart';
 import 'student_notices_screen.dart';
-import '../widgets/development_section.dart';
 import '../widgets/student_home.dart';
 import '../widgets/student_navigation.dart';
 
@@ -25,172 +28,175 @@ class StudentPanel extends StatefulWidget {
   final VoidCallback onLogout;
   final String apiBaseUrl;
   final StudentApi Function()? studentApiFactory;
-
   @override
   State<StudentPanel> createState() => _StudentPanelState();
 }
 
 class _StudentPanelState extends State<StudentPanel> {
   StudentSection _section = StudentSection.inicio;
+  int? _enrollmentId;
+  int? _quickDetailId;
+  bool _openingQuickView = false;
+  Future<void> _openQuickView(StudentSection section) async {
+    if (_openingQuickView) return;
+    _openingQuickView = true;
+    try {
+      final result = await showStudentQuickView(
+        context: context,
+        section: section,
+        apiFactory: _api,
+        onUnauthorized: widget.onLogout,
+        onEnrollmentChanged: _rememberEnrollment,
+        enrollmentId: _enrollmentId,
+      );
+      if (!mounted || result == null) return;
+      setState(() {
+        _enrollmentId = result.enrollmentId;
+        _quickDetailId = result.itemId;
+        _section = result.section;
+      });
+    } finally {
+      _openingQuickView = false;
+    }
+  }
 
-  void _select(StudentSection section) => setState(() => _section = section);
+  void _rememberEnrollment(int? id) {
+    if (mounted && id != _enrollmentId) setState(() => _enrollmentId = id);
+  }
 
+  void _select(StudentSection section) {
+    if (section == StudentSection.progreso) {
+      _openQuickView(section);
+      return;
+    }
+    setState(() {
+      _section = section;
+      _quickDetailId = null;
+    });
+  }
+
+  StudentApi _api() =>
+      widget.studentApiFactory?.call() ??
+      StudentApi(baseUrl: widget.apiBaseUrl, token: widget.session.accessToken);
+  void _home() => _select(StudentSection.inicio);
+  Widget _sectionContent() => switch (_section) {
+    StudentSection.inicio || StudentSection.progreso => const SizedBox.shrink(),
+    StudentSection.perfil => StudentProfileScreen(
+      apiFactory: _api,
+      onUnauthorized: widget.onLogout,
+      onHome: _home,
+    ),
+    StudentSection.cursos => StudentCoursesScreen(
+      initialAssignmentId: _quickDetailId,
+      initialEnrollmentId: _enrollmentId,
+      onEnrollmentChanged: _rememberEnrollment,
+      apiFactory: _api,
+      onUnauthorized: widget.onLogout,
+      onHome: _home,
+    ),
+    StudentSection.tareas => StudentTasksScreen(
+      initialTaskId: _quickDetailId,
+      initialEnrollmentId: _enrollmentId,
+      onEnrollmentChanged: _rememberEnrollment,
+      apiFactory: _api,
+      onUnauthorized: widget.onLogout,
+      onHome: _home,
+    ),
+    StudentSection.calificaciones => StudentGradesScreen(
+      initialGradeId: _quickDetailId,
+      initialEnrollmentId: _enrollmentId,
+      onEnrollmentChanged: _rememberEnrollment,
+      apiFactory: _api,
+      onUnauthorized: widget.onLogout,
+      onHome: _home,
+    ),
+    StudentSection.asistencia => StudentAttendanceScreen(
+      initialRecordId: _quickDetailId,
+      initialEnrollmentId: _enrollmentId,
+      onEnrollmentChanged: _rememberEnrollment,
+      apiFactory: _api,
+      onUnauthorized: widget.onLogout,
+      onHome: _home,
+    ),
+    StudentSection.comunicados => StudentNoticesScreen(
+      apiFactory: _api,
+      onUnauthorized: widget.onLogout,
+      onHome: _home,
+    ),
+  };
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final wide = constraints.maxWidth >= 900;
-      return PopScope(
+  Widget build(BuildContext context) => Theme(
+    data: studentTheme(Theme.of(context)),
+    child: Builder(
+      builder: (context) => PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
           if (_section != StudentSection.inicio) {
-            _select(StudentSection.inicio);
+            _home();
           } else {
             widget.onLogout();
           }
         },
         child: Scaffold(
-          appBar: AppBar(
-            title: Text(
-              _section.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            leading: wide
-                ? null
-                : Builder(
-                    builder: (context) => IconButton(
-                      tooltip: 'Abrir navegación',
-                      icon: const Icon(Icons.menu),
-                      onPressed: () => Scaffold.of(context).openDrawer(),
-                    ),
-                  ),
-            actions: [
-              if (constraints.maxWidth < 420)
-                IconButton(
-                  tooltip: 'Cerrar sesión',
-                  icon: const Icon(Icons.logout),
-                  onPressed: widget.onLogout,
-                )
-              else
-                TextButton(
-                  onPressed: widget.onLogout,
-                  child: const Text('Cerrar sesión'),
-                ),
-            ],
+          bottomNavigationBar: StudentBottomNavigation(
+            selected: _section,
+            onSelect: _select,
           ),
-          drawer: wide
-              ? null
-              : Drawer(
-                  child: Builder(
-                    builder: (context) => StudentNavigation(
-                      selected: _section,
-                      onSelect: (section) {
-                        Scaffold.of(context).closeDrawer();
-                        _select(section);
-                      },
+          body: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: (MediaQuery.sizeOf(context).height * .30).clamp(
+                      80,
+                      180,
+                    ),
+                  ),
+                  child: SingleChildScrollView(
+                    primary: false,
+                    child: StudentHeader(
+                      compact:
+                          MediaQuery.sizeOf(context).width < 1000 ||
+                          MediaQuery.textScalerOf(context).scale(1) > 1.25,
+                      onLogout: widget.onLogout,
                     ),
                   ),
                 ),
-          body: SafeArea(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (wide) ...[
-                  SizedBox(
-                    width: 250,
-                    child: StudentNavigation(
-                      selected: _section,
-                      onSelect: _select,
+                StudentTopNavigation(selected: _section, onSelect: _select),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1200),
+                      child: IndexedStack(
+                        index: _section == StudentSection.inicio ? 0 : 1,
+                        children: [
+                          StudentHome(
+                            key: ObjectKey(widget.session),
+                            session: widget.session,
+                            onQuickView: (section) => _openQuickView(section),
+                            selectedEnrollmentId: _enrollmentId,
+                            onEnrollmentChanged: _rememberEnrollment,
+                            onSelect: _select,
+                            apiFactory: _api,
+                            onUnauthorized: widget.onLogout,
+                          ),
+                          KeyedSubtree(
+                            key: ValueKey('$_section-$_quickDetailId'),
+                            child: _sectionContent(),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const VerticalDivider(width: 1),
-                ],
-                Expanded(
-                  child: _section == StudentSection.inicio
-                      ? StudentHome(session: widget.session, onSelect: _select)
-                      : _section == StudentSection.perfil
-                      ? StudentProfileScreen(
-                          key: ObjectKey(widget.session),
-                          apiFactory:
-                              widget.studentApiFactory ??
-                              () => StudentApi(
-                                baseUrl: widget.apiBaseUrl,
-                                token: widget.session.accessToken,
-                              ),
-                          onUnauthorized: widget.onLogout,
-                          onHome: () => _select(StudentSection.inicio),
-                        )
-                      : _section == StudentSection.cursos
-                      ? StudentCoursesScreen(
-                          key: ObjectKey(widget.session),
-                          apiFactory:
-                              widget.studentApiFactory ??
-                              () => StudentApi(
-                                baseUrl: widget.apiBaseUrl,
-                                token: widget.session.accessToken,
-                              ),
-                          onUnauthorized: widget.onLogout,
-                          onHome: () => _select(StudentSection.inicio),
-                        )
-                      : _section == StudentSection.tareas
-                      ? StudentTasksScreen(
-                          key: ObjectKey(widget.session),
-                          apiFactory:
-                              widget.studentApiFactory ??
-                              () => StudentApi(
-                                baseUrl: widget.apiBaseUrl,
-                                token: widget.session.accessToken,
-                              ),
-                          onUnauthorized: widget.onLogout,
-                          onHome: () => _select(StudentSection.inicio),
-                        )
-                      : _section == StudentSection.calificaciones
-                      ? StudentGradesScreen(
-                          key: ObjectKey(widget.session),
-                          apiFactory:
-                              widget.studentApiFactory ??
-                              () => StudentApi(
-                                baseUrl: widget.apiBaseUrl,
-                                token: widget.session.accessToken,
-                              ),
-                          onUnauthorized: widget.onLogout,
-                          onHome: () => _select(StudentSection.inicio),
-                        )
-                      : _section == StudentSection.asistencia
-                      ? StudentAttendanceScreen(
-                          key: ObjectKey(widget.session),
-                          apiFactory:
-                              widget.studentApiFactory ??
-                              () => StudentApi(
-                                baseUrl: widget.apiBaseUrl,
-                                token: widget.session.accessToken,
-                              ),
-                          onUnauthorized: widget.onLogout,
-                          onHome: () => _select(StudentSection.inicio),
-                        )
-                      : _section == StudentSection.comunicados
-                      ? StudentNoticesScreen(
-                          key: ObjectKey(widget.session),
-                          apiFactory:
-                              widget.studentApiFactory ??
-                              () => StudentApi(
-                                baseUrl: widget.apiBaseUrl,
-                                token: widget.session.accessToken,
-                              ),
-                          onUnauthorized: widget.onLogout,
-                          onHome: () => _select(StudentSection.inicio),
-                        )
-                      : DevelopmentSection(
-                          section: _section,
-                          onHome: () => _select(StudentSection.inicio),
-                        ),
                 ),
               ],
             ),
           ),
         ),
-      );
-    },
+      ),
+    ),
   );
 }

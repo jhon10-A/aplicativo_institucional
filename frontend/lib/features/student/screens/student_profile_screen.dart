@@ -1,3 +1,5 @@
+import '../widgets/student_presentation.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -105,11 +107,14 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     child: Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
+        constraints: const BoxConstraints(maxWidth: 1120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Mi perfil', style: Theme.of(context).textTheme.headlineSmall),
+            const StudentSectionHeading(
+              title: 'Mi perfil',
+              icon: Icons.person_outline,
+            ),
             const SizedBox(height: 16),
             if (_loading) ...[
               const Center(child: CircularProgressIndicator()),

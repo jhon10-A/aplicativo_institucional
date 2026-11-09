@@ -1,3 +1,6 @@
+import '../student_enrollment_selection.dart';
+import '../widgets/student_presentation.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -14,10 +17,16 @@ class StudentTasksScreen extends StatefulWidget {
     required this.apiFactory,
     required this.onUnauthorized,
     required this.onHome,
+    this.initialEnrollmentId,
+    this.initialTaskId,
+    this.onEnrollmentChanged,
   });
   final StudentApi Function() apiFactory;
   final VoidCallback onUnauthorized;
   final VoidCallback onHome;
+  final int? initialEnrollmentId;
+  final int? initialTaskId;
+  final ValueChanged<int?>? onEnrollmentChanged;
   @override
   State<StudentTasksScreen> createState() => _StudentTasksScreenState();
 }
@@ -42,7 +51,20 @@ class _StudentTasksScreenState extends State<StudentTasksScreen> {
     unawaited(_load());
   }
 
+  @override
+  void didUpdateWidget(covariant StudentTasksScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final id = widget.initialEnrollmentId;
+    if (id != null &&
+        id != oldWidget.initialEnrollmentId &&
+        id != _enrollment &&
+        _enrollments.any((m) => m.id == id)) {
+      unawaited(_load(enrollment: id));
+    }
+  }
+
   Future<void> _load({int? enrollment, int course = 0, int? task}) async {
+    if (enrollment != null) widget.onEnrollmentChanged?.call(enrollment);
     final generation = ++_generation;
     setState(() {
       if (_enrollment != enrollment) _courses = [];
@@ -62,6 +84,15 @@ class _StudentTasksScreenState extends State<StudentTasksScreen> {
             .toList();
         if (!mounted || generation != _generation) return;
         setState(() => _enrollments = enrollments);
+        final selected = resolveStudentEnrollment(
+          enrollments,
+          widget.initialEnrollmentId,
+        );
+        widget.onEnrollmentChanged?.call(selected);
+        if (selected != null) {
+          await _load(enrollment: selected, task: widget.initialTaskId);
+          return;
+        }
       } else if (task == null) {
         final data = await _api.get('matriculas/$enrollment/cursos') as List;
         final courses = data
@@ -141,13 +172,13 @@ class _StudentTasksScreenState extends State<StudentTasksScreen> {
     child: Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
+        constraints: const BoxConstraints(maxWidth: 1120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              _task == null ? 'Mis tareas' : 'Detalle de la tarea',
-              style: Theme.of(context).textTheme.headlineSmall,
+            StudentSectionHeading(
+              title: _task == null ? 'Mis tareas' : 'Detalle de la tarea',
+              icon: Icons.assignment_outlined,
             ),
             const SizedBox(height: 16),
             if (_enrollments.isNotEmpty)
@@ -157,6 +188,11 @@ class _StudentTasksScreenState extends State<StudentTasksScreen> {
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Matrícula y periodo',
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 hint: const Text('Selecciona una matrícula'),
                 items: [
