@@ -1,6 +1,7 @@
-package com.institucion.repository;
+package pe.edu.micaelabastidas.backend.repository;
 
-import com.institucion.entity.Docente;
+
+import pe.edu.micaelabastidas.backend.entity.Docente;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

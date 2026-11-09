@@ -1,4 +1,4 @@
-package com.institucion.entity;
+package pe.edu.micaelabastidas.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
