@@ -7,6 +7,7 @@ import '../widgets/guardian_development_section.dart';
 import '../widgets/guardian_home.dart';
 import '../widgets/guardian_navigation.dart';
 import 'guardian_children_screen.dart';
+import 'guardian_grades_screen.dart';
 
 class GuardianPanel extends StatefulWidget {
   const GuardianPanel({
@@ -118,6 +119,8 @@ class _GuardianPanelState extends State<GuardianPanel> {
                       ? GuardianHome(session: widget.session, onSelect: _select)
                       : _section == GuardianSection.hijos
                       ? GuardianChildrenScreen(api: _api)
+                      : _section == GuardianSection.calificaciones
+                      ? GuardianGradesScreen(api: _api)
                       : GuardianDevelopmentSection(
                           section: _section,
                           onHome: () => _select(GuardianSection.inicio),
