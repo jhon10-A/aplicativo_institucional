@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../auth.dart';
 import '../guardian_api.dart';
 import '../guardian_section.dart';
-import '../widgets/guardian_development_section.dart';
 import '../widgets/guardian_home.dart';
 import '../widgets/guardian_navigation.dart';
+import 'guardian_announcements_screen.dart';
 import 'guardian_attendance_screen.dart';
 import 'guardian_children_screen.dart';
 import 'guardian_grades_screen.dart';
@@ -43,6 +43,17 @@ class _GuardianPanelState extends State<GuardianPanel> {
   }
 
   void _select(GuardianSection section) => setState(() => _section = section);
+
+  Widget _body() => switch (_section) {
+    GuardianSection.inicio => GuardianHome(
+      session: widget.session,
+      onSelect: _select,
+    ),
+    GuardianSection.hijos => GuardianChildrenScreen(api: _api),
+    GuardianSection.calificaciones => GuardianGradesScreen(api: _api),
+    GuardianSection.asistencia => GuardianAttendanceScreen(api: _api),
+    GuardianSection.comunicados => GuardianAnnouncementsScreen(api: _api),
+  };
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -115,20 +126,7 @@ class _GuardianPanelState extends State<GuardianPanel> {
                   ),
                   const VerticalDivider(width: 1),
                 ],
-                Expanded(
-                  child: _section == GuardianSection.inicio
-                      ? GuardianHome(session: widget.session, onSelect: _select)
-                      : _section == GuardianSection.hijos
-                      ? GuardianChildrenScreen(api: _api)
-                      : _section == GuardianSection.calificaciones
-                      ? GuardianGradesScreen(api: _api)
-                      : _section == GuardianSection.asistencia
-                      ? GuardianAttendanceScreen(api: _api)
-                      : GuardianDevelopmentSection(
-                          section: _section,
-                          onHome: () => _select(GuardianSection.inicio),
-                        ),
-                ),
+                Expanded(child: _body()),
               ],
             ),
           ),

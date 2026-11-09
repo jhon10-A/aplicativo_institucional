@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
 
-/// Estructura de navegación del apoderado: sin datos académicos ni peticiones al backend.
+/// Secciones de navegación del panel del apoderado.
 enum GuardianSection {
-  inicio('Inicio', Icons.home_outlined),
-  hijos('Mis hijos', Icons.family_restroom),
-  calificaciones('Calificaciones', Icons.grade_outlined),
-  asistencia('Asistencia', Icons.fact_check_outlined),
-  comunicados('Comunicados', Icons.campaign_outlined);
+  inicio('Inicio', Icons.home_outlined, 'Resumen del panel'),
+  hijos('Mis hijos', Icons.family_restroom, 'Datos y matrícula de tus hijos'),
+  calificaciones(
+    'Calificaciones',
+    Icons.grade_outlined,
+    'Notas por curso y promedios',
+  ),
+  asistencia(
+    'Asistencia',
+    Icons.fact_check_outlined,
+    'Asistencias, faltas y tardanzas',
+  ),
+  comunicados('Comunicados', Icons.campaign_outlined, 'Avisos del colegio');
 
-  const GuardianSection(this.label, this.icon);
+  const GuardianSection(this.label, this.icon, this.description);
   final String label;
   final IconData icon;
+  final String description;
 }

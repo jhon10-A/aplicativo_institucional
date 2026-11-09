@@ -15,7 +15,7 @@ Session _session() => Session(
 );
 
 void main() {
-  testWidgets('muestra los datos de sesión y navega por las secciones', (
+  testWidgets('muestra los datos de sesión y los accesos a las secciones', (
     tester,
   ) async {
     var loggedOut = false;
@@ -30,23 +30,17 @@ void main() {
     expect(find.text('Panel del apoderado'), findsOneWidget);
     expect(find.text('Roles: APODERADO'), findsOneWidget);
     expect(find.text('isolated-test-token'), findsNothing);
-    // Las secciones con pantalla real se prueban en sus propios archivos de test.
+    // Cada sección con pantalla propia se prueba en su archivo de test.
     for (final section in GuardianSection.values.where(
-      (s) =>
-          s != GuardianSection.inicio &&
-          s != GuardianSection.hijos &&
-          s != GuardianSection.calificaciones &&
-          s != GuardianSection.asistencia,
+      (s) => s != GuardianSection.inicio,
     )) {
-      await tester.tap(find.byTooltip('Abrir navegación'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(ValueKey('guardian-nav-${section.name}')));
-      await tester.pumpAndSettle();
-      expect(find.text('Sección en desarrollo'), findsOneWidget);
-      await tester.tap(find.text('Volver al inicio del panel'));
-      await tester.pumpAndSettle();
-      expect(find.text('Panel del apoderado'), findsOneWidget);
+      expect(
+        find.byKey(ValueKey('guardian-shortcut-${section.name}')),
+        findsOneWidget,
+      );
+      expect(find.text(section.description), findsOneWidget);
     }
+    expect(find.text('Sección en desarrollo'), findsNothing);
     expect(loggedOut, isFalse);
     await tester.tap(find.text('Cerrar sesión'));
     expect(loggedOut, isTrue);
