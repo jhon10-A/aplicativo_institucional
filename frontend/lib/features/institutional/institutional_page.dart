@@ -3,6 +3,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'location_map.dart';
+import 'whatsapp_icon.dart';
 import 'institutional_publication.dart';
 import 'institutional_section.dart';
 import 'institutional_widgets.dart';
@@ -45,9 +46,10 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
   }
 
   String? get _verifiedWhatsAppNumber {
-    final number = widget.verifiedWhatsAppNumber;
-    if (number == null ||
-        !RegExp(r'^\+?[0-9\s()-]+$').hasMatch(number.trim())) {
+    final number =
+        widget.verifiedWhatsAppNumber ??
+        const String.fromEnvironment('INSTITUTIONAL_WHATSAPP');
+    if (!RegExp(r'^\+?[0-9\s()-]+$').hasMatch(number.trim())) {
       return null;
     }
     final digits = number.replaceAll(RegExp(r'\D'), '');
@@ -83,7 +85,11 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
 
   Uri? get _whatsAppUri {
     final number = _verifiedWhatsAppNumber;
-    return number == null ? null : Uri.https('wa.me', '/$number');
+    return number == null
+        ? null
+        : Uri.https('wa.me', '/$number', {
+            'text': 'Hola, quisiera solicitar información sobre la I.E. Micaela Bastidas Puyucahua',
+          });
   }
 
   Future<void> _openExternalLink(Uri? uri) async {
@@ -654,7 +660,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
 
   Widget _locationMap() => LayoutBuilder(
     builder: (context, bounds) {
-      final mapHeight = (bounds.maxWidth * .35).clamp(190.0, 280.0);
+      final mapHeight = (bounds.maxWidth * .38).clamp(210.0, 300.0);
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Stack(
@@ -710,7 +716,8 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
           : bounds.maxWidth >= 420
           ? 2
           : 1;
-      final width = (bounds.maxWidth - 8 * (columns - 1)) / columns;
+      const spacing = 6.0;
+      final width = (bounds.maxWidth - spacing * (columns - 1)) / columns;
       final actions =
           [
             (
@@ -731,12 +738,10 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
             ),
             (
               'Contactar',
-              _whatsAppUri == null
-                  ? 'Número oficial no confirmado'
-                  : 'Por WhatsApp',
-              'WhatsApp deshabilitado: no hay número oficial confirmado.',
+              'Por WhatsApp',
+              'WhatsApp deshabilitado: configura INSTITUTIONAL_WHATSAPP.',
               Icons.chat,
-              const Color(0xFF138A49),
+              const Color(0xFF00A844),
               _whatsAppUri,
             ),
           ].where(
@@ -744,13 +749,13 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
                 visibleActions == null || visibleActions.contains(action.$1),
           );
       return Wrap(
-        spacing: 8,
-        runSpacing: 8,
+        spacing: spacing,
+        runSpacing: spacing,
         children: [
           for (final action in actions)
             SizedBox(
               width: width,
-              height: 68,
+              height: 60,
               child: Tooltip(
                 message: action.$6 == null ? action.$3 : action.$2,
                 child: FilledButton(
@@ -761,8 +766,12 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
                   style: FilledButton.styleFrom(
                     backgroundColor: action.$5,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: const Color(0xFFE9EDF2),
-                    disabledForegroundColor: const Color(0xFF667085),
+                    disabledBackgroundColor: action.$1 == 'Contactar'
+                        ? action.$5
+                        : const Color(0xFFE9EDF2),
+                    disabledForegroundColor: action.$1 == 'Contactar'
+                        ? Colors.white
+                        : const Color(0xFF667085),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 6,
@@ -778,7 +787,10 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
                     hint: action.$6 == null ? action.$3 : null,
                     child: Row(
                       children: [
-                        Icon(action.$4, size: 24),
+                        if (action.$1 == 'Contactar')
+                          const WhatsAppIcon(size: 24)
+                        else
+                          Icon(action.$4, size: 24),
                         const SizedBox(width: 7),
                         Expanded(
                           child: Column(

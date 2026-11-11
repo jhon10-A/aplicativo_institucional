@@ -29,6 +29,14 @@ class OpenStreetMapView extends StatelessWidget {
         initialZoom: 17.5,
         minZoom: 3,
         maxZoom: 19,
+        // Avoid accidentally panning away from the school with a one-finger
+        // swipe. Keep pinch zoom and two-finger movement available.
+        interactionOptions: const InteractionOptions(
+          flags:
+              InteractiveFlag.all &
+              ~InteractiveFlag.drag &
+              ~InteractiveFlag.flingAnimation,
+        ),
       ),
       children: [
         TileLayer(

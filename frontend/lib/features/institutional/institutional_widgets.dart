@@ -157,11 +157,6 @@ class InstitutionalLayout extends StatelessWidget {
                   'institutional-footer.png',
                   label: 'Juntos construimos una mejor educación',
                 ),
-                if (section == InstitutionalSection.location)
-                  const SizedBox(
-                    key: Key('location-scroll-end-spacer'),
-                    height: 24,
-                  ),
               ],
             ),
           ),

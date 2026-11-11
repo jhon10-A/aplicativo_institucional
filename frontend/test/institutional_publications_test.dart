@@ -181,14 +181,43 @@ void main() {
       );
       expect(find.text('Abre en Google Maps'), findsOneWidget);
       expect(find.text('Desde tu ubicación'), findsOneWidget);
-      expect(find.text('Número oficial no confirmado'), findsOneWidget);
+      expect(find.text('Por WhatsApp'), findsOneWidget);
+      final contact = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Contactar'),
+      );
+      expect(
+        contact.style!.backgroundColor!.resolve({WidgetState.disabled}),
+        const Color(0xFF00A844),
+      );
+      expect(
+        contact.style!.foregroundColor!.resolve({WidgetState.disabled}),
+        Colors.white,
+      );
       expect(find.textContaining('Número oficial pendiente'), findsNothing);
       expect(
         find.byTooltip(
-          'WhatsApp deshabilitado: no hay número oficial confirmado.',
+          'WhatsApp deshabilitado: configura INSTITUTIONAL_WHATSAPP.',
         ),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'deslizar sobre el mapa con un dedo no aleja el colegio',
+    (tester) async {
+      await tester.pumpWidget(_page(InstitutionalSection.location));
+      await tester.pumpAndSettle();
+      final map = find.byKey(const Key('open-street-map'));
+      await tester.ensureVisible(map);
+      await tester.pumpAndSettle();
+      final cameraBefore = MapCamera.of(tester.element(find.byType(TileLayer)));
+      await tester.drag(map, const Offset(0, -80));
+      await tester.pumpAndSettle();
+      final cameraAfter = MapCamera.of(tester.element(find.byType(TileLayer)));
+      expect(cameraAfter.center, cameraBefore.center);
+      expect(cameraAfter.zoom, 17.5);
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -257,7 +286,13 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('location-action-Contactar')));
     await tester.pumpAndSettle();
 
-    expect(launchedUrl, 'https://wa.me/51987654321');
+    final uri = Uri.parse(launchedUrl!);
+    expect(uri.host, 'wa.me');
+    expect(uri.path, '/51987654321');
+    expect(
+      uri.queryParameters['text'],
+      'Hola, quisiera solicitar información sobre la I.E. Micaela Bastidas Puyucahua',
+    );
   });
 
   testWidgets(
@@ -487,7 +522,7 @@ void main() {
       expect(find.byKey(const Key('view-in-google-maps')), findsOneWidget);
       expect(
         tester.getSize(find.byKey(const Key('open-street-map'))).height,
-        greaterThanOrEqualTo(190),
+        greaterThanOrEqualTo(210),
       );
       expect(
         find.byKey(const ValueKey('location-action-Cómo Llegar')),
@@ -496,17 +531,27 @@ void main() {
       final actionSize = tester.getSize(
         find.byKey(const ValueKey('location-action-Cómo Llegar')),
       );
-      expect(actionSize.width, greaterThan(size.width == 390 ? 300 : 150));
-      await tester.ensureVisible(
-        find.byKey(const Key('location-scroll-end-spacer')),
+      expect(
+        tester.getSize(find.byKey(const ValueKey('location-action-Contactar'))),
+        actionSize,
       );
-      final spacerBottom = tester
-          .getRect(find.byKey(const Key('location-scroll-end-spacer')))
-          .bottom;
+      expect(actionSize.width, greaterThan(size.width == 390 ? 300 : 150));
+      expect(actionSize.height, 60);
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, -3000),
+      );
+      await tester.pumpAndSettle();
+      final footer = find.byWidgetPredicate(
+        (widget) =>
+            widget is Image &&
+            widget.semanticLabel == 'Juntos construimos una mejor educación',
+      );
+      final footerBottom = tester.getRect(footer).bottom;
       final navigationTop = tester
           .getRect(find.byKey(const Key('institutional-bottom-navigation')))
           .top;
-      expect(spacerBottom, lessThanOrEqualTo(navigationTop));
+      expect(footerBottom, closeTo(navigationTop, 0.1));
       expect(tester.takeException(), isNull);
     });
   }
