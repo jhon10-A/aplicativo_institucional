@@ -11,8 +11,8 @@ import 'package:aplicativo_institucional/main.dart';
 import 'auth_test.dart' show responseFixture;
 
 Future<void> openStudent(WidgetTester tester) async {
-  await tester.ensureVisible(find.text('Estudiante'));
-  await tester.tap(find.text('Estudiante'));
+  await tester.ensureVisible(find.byTooltip('Estudiante'));
+  await tester.tap(find.byTooltip('Estudiante'));
   await tester.pumpAndSettle();
   await tester.ensureVisible(find.byType(TextFormField).first);
 }
@@ -94,7 +94,7 @@ void main() {
       expect(find.text('isolated-test-token'), findsNothing);
       await tester.tap(find.text('Cerrar sesión'));
       await tester.pumpAndSettle();
-      expect(find.text('¡Bienvenidos!'), findsOneWidget);
+      expect(find.byTooltip('Menú institucional'), findsOneWidget);
       await openStudent(tester);
       expect(
         tester

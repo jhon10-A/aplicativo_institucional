@@ -73,7 +73,7 @@ void main() {
         expect(find.byType(StudentPanel), findsNothing);
         expect(find.text('Respuesta: Mi respuesta'), findsNothing);
         expect(find.text('respuesta-privada-de-prueba'), findsNothing);
-        expect(find.text('¡Bienvenidos!'), findsOneWidget);
+        expect(find.byTooltip('Menú institucional'), findsOneWidget);
         await tester.binding.handlePopRoute();
         await tester.pumpAndSettle();
         expect(find.byType(StudentSubmissionScreen), findsNothing);
