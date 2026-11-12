@@ -74,7 +74,13 @@ void main() {
         access.key == 'Estudiante' ? findsOneWidget : findsNothing,
       );
       expect(find.text('Nombre de prueba Apellido de prueba'), findsOneWidget);
-      expect(find.text('Roles: ${access.value}'), findsOneWidget);
+      expect(
+        find.text('Roles: ${access.value}'),
+        access.key == 'Estudiante' ? findsNothing : findsOneWidget,
+      );
+      if (access.key == 'Estudiante') {
+        expect(find.text('Turno: No disponible'), findsOneWidget);
+      }
       await tester.tap(find.text('Cerrar sesión'));
       await tester.pumpAndSettle();
       expect(find.byTooltip('Menú institucional'), findsOneWidget);

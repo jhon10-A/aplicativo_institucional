@@ -26,9 +26,17 @@ class OpenStreetMapView extends StatelessWidget {
     child: FlutterMap(
       options: MapOptions(
         initialCenter: verifiedLocation ?? verifiedInstitutionLocation,
-        initialZoom: 16,
+        initialZoom: 17.5,
         minZoom: 3,
         maxZoom: 19,
+        // Avoid accidentally panning away from the school with a one-finger
+        // swipe. Keep pinch zoom and two-finger movement available.
+        interactionOptions: const InteractionOptions(
+          flags:
+              InteractiveFlag.all &
+              ~InteractiveFlag.drag &
+              ~InteractiveFlag.flingAnimation,
+        ),
       ),
       children: [
         TileLayer(
@@ -113,26 +121,33 @@ class OpenStreetMapView extends StatelessWidget {
 }
 
 class LocationHeaderIllustration extends StatelessWidget {
-  const LocationHeaderIllustration({super.key});
+  const LocationHeaderIllustration({
+    super.key,
+    this.width = 88,
+    this.height = 72,
+  });
+
+  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: 88,
-    height: 72,
+    width: width,
+    height: height,
     child: Stack(
       alignment: Alignment.center,
       children: [
-        const CustomPaint(
-          size: Size(88, 62),
-          painter: _LocationIllustrationPainter(),
+        CustomPaint(
+          size: Size(width, height * .86),
+          painter: const _LocationIllustrationPainter(),
         ),
         Positioned(
-          right: 16,
+          right: width * .18,
           top: 0,
           child: Icon(
             Icons.location_on,
             color: const Color(0xFFD52B3F),
-            size: 30,
+            size: height * .42,
             shadows: [
               Shadow(
                 color: Colors.black.withValues(alpha: .16),

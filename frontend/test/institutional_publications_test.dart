@@ -182,13 +182,42 @@ void main() {
       expect(find.text('Abre en Google Maps'), findsOneWidget);
       expect(find.text('Desde tu ubicación'), findsOneWidget);
       expect(find.text('Por WhatsApp'), findsOneWidget);
+      final contact = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Contactar'),
+      );
+      expect(
+        contact.style!.backgroundColor!.resolve({WidgetState.disabled}),
+        const Color(0xFF00A844),
+      );
+      expect(
+        contact.style!.foregroundColor!.resolve({WidgetState.disabled}),
+        Colors.white,
+      );
       expect(find.textContaining('Número oficial pendiente'), findsNothing);
       expect(
         find.byTooltip(
-          'Disponible cuando se confirme el número oficial de WhatsApp.',
+          'WhatsApp deshabilitado: configura INSTITUTIONAL_WHATSAPP.',
         ),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'deslizar sobre el mapa con un dedo no aleja el colegio',
+    (tester) async {
+      await tester.pumpWidget(_page(InstitutionalSection.location));
+      await tester.pumpAndSettle();
+      final map = find.byKey(const Key('open-street-map'));
+      await tester.ensureVisible(map);
+      await tester.pumpAndSettle();
+      final cameraBefore = MapCamera.of(tester.element(find.byType(TileLayer)));
+      await tester.drag(map, const Offset(0, -80));
+      await tester.pumpAndSettle();
+      final cameraAfter = MapCamera.of(tester.element(find.byType(TileLayer)));
+      expect(cameraAfter.center, cameraBefore.center);
+      expect(cameraAfter.zoom, 17.5);
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -202,7 +231,7 @@ void main() {
     final layer = tester.widget<TileLayer>(find.byType(TileLayer));
 
     expect(map.options.initialCenter, const LatLng(-13.6219539, -72.8744841));
-    expect(map.options.initialZoom, 16);
+    expect(map.options.initialZoom, 17.5);
     expect(layer.urlTemplate, 'https://tile.openstreetmap.org/{z}/{x}/{y}.png');
     expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
     expect(
@@ -217,6 +246,53 @@ void main() {
       const LatLng(-13.6219539, -72.8744841),
     );
     expect(find.byKey(const Key('verified-school-marker')), findsOneWidget);
+  });
+
+  testWidgets('WhatsApp se habilita solo con un número confirmado', (
+    tester,
+  ) async {
+    String? launchedUrl;
+    const channel = MethodChannel('plugins.flutter.io/url_launcher');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          if (call.method == 'launch') {
+            launchedUrl = call.arguments['url'] as String;
+            return true;
+          }
+          return false;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null),
+    );
+
+    await tester.pumpWidget(
+      _page(
+        InstitutionalSection.location,
+        verifiedWhatsAppNumber: '+51 (987) 654-321',
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('location-tab-Contacto')));
+    await tester.pumpAndSettle();
+
+    final contactButton = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('location-action-Contactar')),
+    );
+    expect(contactButton.onPressed, isNotNull);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('location-action-Contactar')),
+    );
+    await tester.tap(find.byKey(const ValueKey('location-action-Contactar')));
+    await tester.pumpAndSettle();
+
+    final uri = Uri.parse(launchedUrl!);
+    expect(uri.host, 'wa.me');
+    expect(uri.path, '/51987654321');
+    expect(
+      uri.queryParameters['text'],
+      'Hola, quisiera solicitar información sobre la I.E. Micaela Bastidas Puyucahua',
+    );
   });
 
   testWidgets(
@@ -425,6 +501,7 @@ void main() {
   });
 
   for (final size in [
+    const Size(320, 568),
     const Size(390, 844),
     const Size(768, 1024),
     const Size(1440, 900),
@@ -444,23 +521,37 @@ void main() {
       expect(find.byType(FlutterMap), findsOneWidget);
       expect(find.byKey(const Key('view-in-google-maps')), findsOneWidget);
       expect(
+        tester.getSize(find.byKey(const Key('open-street-map'))).height,
+        greaterThanOrEqualTo(210),
+      );
+      expect(
         find.byKey(const ValueKey('location-action-Cómo Llegar')),
         findsOneWidget,
       );
       final actionSize = tester.getSize(
         find.byKey(const ValueKey('location-action-Cómo Llegar')),
       );
-      expect(actionSize.width, greaterThan(size.width == 390 ? 300 : 150));
-      await tester.ensureVisible(
-        find.byKey(const Key('location-scroll-end-spacer')),
+      expect(
+        tester.getSize(find.byKey(const ValueKey('location-action-Contactar'))),
+        actionSize,
       );
-      final spacerBottom = tester
-          .getRect(find.byKey(const Key('location-scroll-end-spacer')))
-          .bottom;
+      expect(actionSize.width, greaterThan(size.width == 390 ? 300 : 150));
+      expect(actionSize.height, 60);
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, -3000),
+      );
+      await tester.pumpAndSettle();
+      final footer = find.byWidgetPredicate(
+        (widget) =>
+            widget is Image &&
+            widget.semanticLabel == 'Juntos construimos una mejor educación',
+      );
+      final footerBottom = tester.getRect(footer).bottom;
       final navigationTop = tester
           .getRect(find.byKey(const Key('institutional-bottom-navigation')))
           .top;
-      expect(spacerBottom, lessThanOrEqualTo(navigationTop));
+      expect(footerBottom, closeTo(navigationTop, 0.1));
       expect(tester.takeException(), isNull);
     });
   }
@@ -469,11 +560,13 @@ void main() {
 Widget _page(
   InstitutionalSection section, {
   List<InstitutionalPublication> publications = const [],
+  String? verifiedWhatsAppNumber,
 }) => MaterialApp(
   home: InstitutionalPage(
     section: section,
     onBack: () {},
     onSection: (_) {},
     publications: publications,
+    verifiedWhatsAppNumber: verifiedWhatsAppNumber,
   ),
 );
