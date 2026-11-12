@@ -44,7 +44,7 @@ void main() {
     expect(session.accessToken.isNotEmpty, isTrue);
   });
 
-  for (final status in [400, 401, 500]) {
+  for (final status in [400, 401, 403, 500]) {
     test('maneja HTTP $status sin mostrar el cuerpo del servidor', () async {
       final api = AuthApi(
         baseUrl: 'http://localhost:8080',
@@ -59,6 +59,20 @@ void main() {
             (error) => error.message.contains('sensitive-server-body'),
             'cuerpo no expuesto',
             false,
+          ).having(
+            (error) => error.message,
+            'error HTTP distinguible',
+            status == 401
+                ? contains('Credenciales incorrectas')
+                : status == 400
+                ? contains('Datos inválidos')
+                : contains('HTTP $status'),
+          ).having(
+            (error) => error.message,
+            'error de servidor separado',
+            status >= 500
+                ? contains('Error del servidor')
+                : isNot(contains('Error del servidor')),
           ),
         ),
       );
@@ -78,7 +92,11 @@ void main() {
         isA<LoginFailure>().having(
           (error) => error.message,
           'mensaje',
-          contains('No se pudo conectar'),
+          allOf(
+            contains('No se pudo conectar'),
+            contains('CORS'),
+            contains('mismo error'),
+          ),
         ),
       ),
     );

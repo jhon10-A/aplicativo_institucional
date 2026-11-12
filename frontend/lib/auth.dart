@@ -101,9 +101,14 @@ class AuthApi {
           'Datos inválidos. Revisa el usuario y la contraseña.',
         );
       }
+      if (response.statusCode >= 500) {
+        throw LoginFailure(
+          'Error del servidor (HTTP ${response.statusCode}). Inténtalo más tarde.',
+        );
+      }
       if (response.statusCode != 200) {
-        throw const LoginFailure(
-          'No se pudo iniciar sesión. Inténtalo más tarde.',
+        throw LoginFailure(
+          'El servidor rechazó la solicitud (HTTP ${response.statusCode}).',
         );
       }
       try {
@@ -121,7 +126,8 @@ class AuthApi {
       );
     } on http.ClientException {
       throw const LoginFailure(
-        'No se pudo conectar. Revisa la red, la URL y CORS si usas Chrome.',
+        'No se pudo conectar. Verifica la red y la URL; en Chrome, un bloqueo '
+        'de CORS puede producir el mismo error.',
       );
     } finally {
       client.close();
