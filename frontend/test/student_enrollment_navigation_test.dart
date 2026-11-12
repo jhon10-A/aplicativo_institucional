@@ -6,12 +6,17 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:aplicativo_institucional/auth.dart';
 import 'package:aplicativo_institucional/features/student/screens/student_panel.dart';
+import 'package:aplicativo_institucional/features/student/screens/student_progress_screen.dart';
+import 'package:aplicativo_institucional/features/student/screens/student_tasks_screen.dart';
+import 'package:aplicativo_institucional/features/student/screens/student_grades_screen.dart';
 import 'package:aplicativo_institucional/features/student/student_api.dart';
 import 'package:aplicativo_institucional/features/student/student_profile.dart';
 import 'package:aplicativo_institucional/features/student/student_enrollment_selection.dart';
 
 import 'auth_test.dart' show responseFixture;
 import 'student_profile_test.dart' show enrollmentFixture;
+import 'student_tasks_test.dart' show taskFixture;
+import 'student_grades_test.dart' show gradeFixture;
 
 void main() {
   test(
@@ -59,12 +64,42 @@ void main() {
                     'Bearer isolated-test-token',
                   );
                   paths.add(request.url.path);
-                  final Object body = request.url.path.endsWith('/matriculas')
+                  final path = request.url.path;
+                  final Object body = path.endsWith('/matriculas')
                       ? [
                           enrollmentFixture('2026'),
                           if (multiple) enrollmentFixture('2025'),
                         ]
-                      : request.url.path.endsWith('/asistencias')
+                      : path.endsWith('/tareas/701')
+                      ? taskFixture(deadline: '2099-12-31T12:00:00')
+                      : path.endsWith('/tareas')
+                      ? [
+                          taskFixture(
+                            title: 'Tarea pendiente',
+                            deadline: '2099-12-31T12:00:00',
+                          ),
+                          taskFixture(
+                            id: 702,
+                            title: 'Tarea vencida',
+                            deadline: '2026-04-10T18:00:00',
+                          ),
+                          taskFixture(
+                            id: 703,
+                            title: 'Tarea entregada',
+                            submitted: true,
+                            reviewed: false,
+                          ),
+                          taskFixture(
+                            id: 704,
+                            title: 'Tarea revisada',
+                            submitted: true,
+                          ),
+                        ]
+                      : path.endsWith('/calificaciones/901')
+                      ? gradeFixture()
+                      : path.endsWith('/calificaciones')
+                      ? [gradeFixture()]
+                      : path.endsWith('/asistencias')
                       ? {
                           'registros': [],
                           'resumen': {
@@ -159,14 +194,13 @@ void main() {
             find.byKey(ValueKey('student-shortcut-${entry.key}')),
           );
           await tester.pumpAndSettle();
-          await tester.tap(
-            find.text(
-              entry.key == 'progreso'
-                  ? 'Ver calificaciones completas'
-                  : 'Abrir pantalla completa',
-            ),
-          );
-          await tester.pumpAndSettle();
+          if (entry.key == 'cursos' ||
+              entry.key == 'tareas' ||
+              entry.key == 'calificaciones' ||
+              entry.key == 'progreso') {
+            expect(find.text('Año escolar: $expectedPeriod'), findsOneWidget);
+            expect(find.text('Abrir pantalla completa'), findsNothing);
+          }
           expect(find.text('Selecciona una matrícula'), findsNothing);
           expect(
             paths,
@@ -174,15 +208,86 @@ void main() {
               '/api/estudiante/matriculas/$expectedPeriod/${entry.value}',
             ),
           );
-          if (multiple && entry.key == 'cursos') {
+          if (multiple &&
+              (entry.key == 'cursos' ||
+                  entry.key == 'calificaciones' ||
+                  entry.key == 'progreso')) {
             await tester.tap(find.byType(DropdownButtonFormField<int>).first);
             await tester.pumpAndSettle();
             await tester.tap(find.textContaining('2025 ·').last);
             await tester.pumpAndSettle();
-            expect(paths, contains('/api/estudiante/matriculas/2025/cursos'));
+            expect(
+              paths,
+              contains('/api/estudiante/matriculas/2025/${entry.value}'),
+            );
             expectedPeriod = 2025;
           }
-          await tester.tap(find.byKey(const ValueKey('student-bottom-inicio')));
+          if (entry.key == 'progreso') {
+            expect(find.byType(StudentProgressScreen), findsOneWidget);
+            expect(
+              find.text('Secundaria · 1.º grado · Sección A'),
+              findsOneWidget,
+            );
+            expect(find.text('Pendientes: 1'), findsOneWidget);
+            expect(find.text('Entregadas: 1'), findsOneWidget);
+            expect(find.text('Revisadas: 1'), findsOneWidget);
+            expect(find.text('Vencidas: 1'), findsOneWidget);
+            expect(find.text('Calificaciones por curso'), findsOneWidget);
+            final task = find.ancestor(
+              of: find.text('Tarea pendiente'),
+              matching: find.byType(ListTile),
+            );
+            await tester.ensureVisible(task);
+            await tester.tap(task);
+            await tester.pumpAndSettle();
+            expect(find.byType(StudentTasksScreen), findsOneWidget);
+            expect(find.text('Detalle de la tarea'), findsOneWidget);
+            expect(
+              paths,
+              contains('/api/estudiante/matriculas/$expectedPeriod/tareas/701'),
+            );
+            await tester.ensureVisible(find.text('Volver al inicio del panel'));
+            await tester.tap(find.text('Volver al inicio del panel'));
+            await tester.pumpAndSettle();
+            await tester.ensureVisible(
+              find.byKey(const ValueKey('student-shortcut-progreso')),
+            );
+            await tester.tap(
+              find.byKey(const ValueKey('student-shortcut-progreso')),
+            );
+            await tester.pumpAndSettle();
+            final grade = find.ancestor(
+              of: find.text('Examen'),
+              matching: find.byType(ListTile),
+            );
+            await tester.ensureVisible(grade);
+            await tester.tap(grade);
+            await tester.pumpAndSettle();
+            expect(find.byType(StudentGradesScreen), findsOneWidget);
+            expect(find.text('Detalle de la calificación'), findsOneWidget);
+            expect(
+              paths,
+              contains(
+                '/api/estudiante/matriculas/$expectedPeriod/calificaciones/901',
+              ),
+            );
+            await tester.ensureVisible(find.text('Volver al inicio del panel'));
+            await tester.tap(find.text('Volver al inicio del panel'));
+            await tester.pumpAndSettle();
+            expect(find.text('Hola,'), findsOneWidget);
+            expect(tester.takeException(), isNull);
+            continue;
+          }
+          if (entry.key == 'cursos' ||
+              entry.key == 'tareas' ||
+              entry.key == 'calificaciones') {
+            await tester.ensureVisible(find.text('Volver al inicio del panel'));
+            await tester.tap(find.text('Volver al inicio del panel'));
+          } else {
+            await tester.tap(
+              find.byKey(const ValueKey('student-bottom-inicio')),
+            );
+          }
           await tester.pumpAndSettle();
           expect(find.text('Periodo $expectedPeriod'), findsNothing);
           expect(find.byTooltip('Actualizar resúmenes'), findsNothing);

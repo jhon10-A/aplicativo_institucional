@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:aplicativo_institucional/auth.dart';
 import 'package:aplicativo_institucional/features/student/screens/student_panel.dart';
+import 'package:aplicativo_institucional/features/student/screens/student_schedule_screen.dart';
 import 'package:aplicativo_institucional/features/student/student_api.dart';
 import 'package:aplicativo_institucional/features/student/widgets/student_overview.dart';
 
@@ -14,6 +15,7 @@ import 'auth_test.dart' show responseFixture;
 import 'student_profile_test.dart' show enrollmentFixture;
 import 'student_courses_test.dart' show courseFixture;
 import 'student_notices_test.dart' show noticeFixture;
+import 'student_schedule_test.dart' show scheduleFixture;
 
 http.Response json(Object body, [int status = 200]) => http.Response(
   jsonEncode(body),
@@ -72,6 +74,16 @@ void main() {
             if (request.url.path.endsWith('/comunicados')) {
               return json([noticeFixture()]);
             }
+            if (request.url.path.endsWith('/horario')) {
+              return json([
+                scheduleFixture(
+                  course: 'Curso recibido del horario',
+                  teacher: 'Docente recibido del horario',
+                  start: '08:00:00',
+                  end: '08:45:00',
+                ),
+              ]);
+            }
             return json([]);
           }),
         ),
@@ -95,16 +107,21 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Mi Horario de Clases'), findsOneWidget);
-    expect(
-      find.text('El sistema aún no dispone de horarios de clases.'),
-      findsOneWidget,
-    );
-    expect(
-      tester
-          .widget<TextButton>(find.widgetWithText(TextButton, 'Ver completo'))
-          .onPressed,
-      isNull,
-    );
+    expect(requested, contains('/api/estudiante/matriculas/2026/horario'));
+    expect(find.text('Lun 08:00\n08:45'), findsOneWidget);
+    expect(find.text('Curso recibido del horario'), findsOneWidget);
+    final openSchedule = find.widgetWithText(TextButton, 'Ver completo');
+    expect(tester.widget<TextButton>(openSchedule).onPressed, isNotNull);
+    await tester.ensureVisible(openSchedule);
+    await tester.tap(openSchedule);
+    await tester.pumpAndSettle();
+    expect(find.byType(StudentScheduleScreen), findsOneWidget);
+    expect(find.text('Año escolar: 2026'), findsOneWidget);
+    expect(find.text('Docente: Docente recibido del horario'), findsOneWidget);
+    await tester.ensureVisible(find.text('Volver al inicio del panel'));
+    await tester.tap(find.text('Volver al inicio del panel'));
+    await tester.pumpAndSettle();
+    expect(find.byType(StudentScheduleScreen), findsNothing);
     expect(find.text('Mi asistencia'), findsNothing);
     expect(find.text('07:30'), findsNothing);
     expect(find.text('Recreo'), findsNothing);

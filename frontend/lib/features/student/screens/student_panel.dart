@@ -11,7 +11,9 @@ import 'student_profile_screen.dart';
 import 'student_courses_screen.dart';
 import 'student_tasks_screen.dart';
 import 'student_grades_screen.dart';
+import 'student_progress_screen.dart';
 import 'student_attendance_screen.dart';
+import 'student_schedule_screen.dart';
 import 'student_notices_screen.dart';
 import '../widgets/student_home.dart';
 import '../widgets/student_navigation.dart';
@@ -65,13 +67,23 @@ class _StudentPanelState extends State<StudentPanel> {
   }
 
   void _select(StudentSection section) {
-    if (section == StudentSection.progreso) {
-      _openQuickView(section);
-      return;
-    }
     setState(() {
       _section = section;
       _quickDetailId = null;
+    });
+  }
+
+  void _openProgressTask(int taskId) {
+    setState(() {
+      _quickDetailId = taskId;
+      _section = StudentSection.tareas;
+    });
+  }
+
+  void _openProgressGrade(int gradeId) {
+    setState(() {
+      _quickDetailId = gradeId;
+      _section = StudentSection.calificaciones;
     });
   }
 
@@ -80,7 +92,16 @@ class _StudentPanelState extends State<StudentPanel> {
       StudentApi(baseUrl: widget.apiBaseUrl, token: widget.session.accessToken);
   void _home() => _select(StudentSection.inicio);
   Widget _sectionContent() => switch (_section) {
-    StudentSection.inicio || StudentSection.progreso => const SizedBox.shrink(),
+    StudentSection.inicio => const SizedBox.shrink(),
+    StudentSection.progreso => StudentProgressScreen(
+      initialEnrollmentId: _enrollmentId,
+      onEnrollmentChanged: _rememberEnrollment,
+      apiFactory: _api,
+      onUnauthorized: widget.onLogout,
+      onHome: _home,
+      onOpenTask: _openProgressTask,
+      onOpenGrade: _openProgressGrade,
+    ),
     StudentSection.perfil => StudentProfileScreen(
       apiFactory: _api,
       onUnauthorized: widget.onLogout,
@@ -112,6 +133,13 @@ class _StudentPanelState extends State<StudentPanel> {
     ),
     StudentSection.asistencia => StudentAttendanceScreen(
       initialRecordId: _quickDetailId,
+      initialEnrollmentId: _enrollmentId,
+      onEnrollmentChanged: _rememberEnrollment,
+      apiFactory: _api,
+      onUnauthorized: widget.onLogout,
+      onHome: _home,
+    ),
+    StudentSection.horario => StudentScheduleScreen(
       initialEnrollmentId: _enrollmentId,
       onEnrollmentChanged: _rememberEnrollment,
       apiFactory: _api,

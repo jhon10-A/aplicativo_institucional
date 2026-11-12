@@ -46,7 +46,8 @@ class StudentTask {
   final StudentSubmission? entrega;
 
   String get estado => switch (estadoEntrega) {
-    'PENDIENTE' => 'Pendiente',
+    'PENDIENTE' =>
+      DateTime.now().isAfter(fechaLimite) ? 'Vencida' : 'Pendiente',
     'ENTREGADA' => 'Entregada',
     'REVISADA' => 'Revisada',
     _ => 'No disponible',

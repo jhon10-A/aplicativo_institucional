@@ -1,5 +1,3 @@
-import 'student_test_navigation.dart';
-
 import 'dart:async';
 import 'dart:convert';
 
@@ -53,11 +51,9 @@ void main() {
     headers: {'content-type': 'application/json; charset=utf-8'},
   );
   Future<void> select(WidgetTester tester, String period) async {
-    if (tester
-            .widget<DropdownButtonFormField<int>>(
-              find.byType(DropdownButtonFormField<int>),
-            )
-            .initialValue ==
+    final selector = find.byType(DropdownButtonFormField<int>);
+    if (selector.evaluate().isEmpty) return;
+    if (tester.widget<DropdownButtonFormField<int>>(selector).initialValue ==
         int.parse(period)) {
       return;
     }
@@ -94,7 +90,10 @@ void main() {
       );
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       pending.complete(
-        json([enrollmentFixture('2026'), enrollmentFixture('2025')]),
+        json([
+          enrollmentFixture('2026', periodName: 'TEST_EST_a144bf99'),
+          enrollmentFixture('2025'),
+        ]),
       );
       await tester.pumpAndSettle();
       expect(paths, ['/api/estudiante/matriculas']);
@@ -104,10 +103,16 @@ void main() {
       );
       await select(tester, '2026');
       expect(paths.last, '/api/estudiante/matriculas/2026/cursos');
+      expect(find.text('Año escolar: 2026'), findsOneWidget);
+      expect(find.text('Año escolar: TEST_EST_a144bf99'), findsNothing);
+      expect(find.text('Secundaria · 1.º grado · Sección A'), findsOneWidget);
+      expect(find.text('Matrícula: Activa'), findsOneWidget);
+      expect(find.byType(DropdownButtonFormField<int>), findsOneWidget);
       expect(find.text('Docente: Docente Prueba'), findsOneWidget);
-      expect(find.text('Periodo: 2026'), findsOneWidget);
-      expect(find.text('Grado: Primero'), findsOneWidget);
-      expect(find.text('Sección: A'), findsOneWidget);
+      expect(find.text('Periodo: 2026'), findsNothing);
+      expect(find.text('Nivel: SECUNDARIA'), findsNothing);
+      expect(find.text('Grado: Primero'), findsNothing);
+      expect(find.text('Sección: A'), findsNothing);
       await tester.tap(find.text('Matemática'));
       await tester.pumpAndSettle();
       expect(paths.last, '/api/estudiante/matriculas/2026/cursos/501');
@@ -117,8 +122,8 @@ void main() {
       await tester.pumpAndSettle();
       await select(tester, '2025');
       expect(paths.last, '/api/estudiante/matriculas/2025/cursos');
-      expect(find.text('Periodo: 2025'), findsOneWidget);
-      expect(find.text('Periodo: 2026'), findsNothing);
+      expect(find.text('Año escolar: 2025'), findsOneWidget);
+      expect(find.text('Año escolar: 2026'), findsNothing);
       expect(find.textContaining('isolated-test-token'), findsNothing);
     },
   );
@@ -145,7 +150,63 @@ void main() {
       find.text('No hay cursos asignados a esta matrícula.'),
       findsOneWidget,
     );
+    expect(find.byType(DropdownButtonFormField<int>), findsNothing);
+    expect(find.text('Año escolar: 2026'), findsOneWidget);
   });
+
+  testWidgets('una matrícula inactiva se puede elegir explícitamente', (
+    tester,
+  ) async {
+    final inactive = enrollmentFixture('2025')..['estado'] = 'FINALIZADA';
+    await tester.pumpWidget(
+      screen(
+        api(
+          (request) async => request.url.path.endsWith('/matriculas')
+              ? json([inactive])
+              : json([]),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(DropdownButtonFormField<int>), findsOneWidget);
+    await tester.tap(find.byType(DropdownButtonFormField<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('2025 ·').last);
+    await tester.pumpAndSettle();
+    expect(
+      find.text('No hay cursos asignados a esta matrícula.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'selecciona la matrícula activa y conserva el selector histórico',
+    (tester) async {
+      final historical = enrollmentFixture('2025')..['estado'] = 'FINALIZADA';
+      final paths = <String>[];
+      await tester.pumpWidget(
+        screen(
+          api((request) async {
+            paths.add(request.url.path);
+            if (request.url.path.endsWith('/matriculas')) {
+              return json([enrollmentFixture('2026'), historical]);
+            }
+            return json([]);
+          }),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(paths, contains('/api/estudiante/matriculas/2026/cursos'));
+      expect(find.text('Año escolar: 2026'), findsOneWidget);
+      expect(find.byType(DropdownButtonFormField<int>), findsOneWidget);
+      await tester.tap(find.byType(DropdownButtonFormField<int>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('2025 ·').last);
+      await tester.pumpAndSettle();
+      expect(paths, contains('/api/estudiante/matriculas/2025/cursos'));
+      expect(find.text('Año escolar: 2025'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'error de lista y detalle permiten reintentar sin datos anteriores',
@@ -231,7 +292,7 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('student-shortcut-cursos')));
     await tester.pumpAndSettle();
-    await openCompleteStudentSection(tester, 'cursos');
+    expect(find.text('Abrir pantalla completa'), findsNothing);
     expect(find.byType(StudentCoursesScreen), findsOneWidget);
     expect(find.text('No tienes matrículas registradas.'), findsOneWidget);
     await tester.tap(find.text('Volver al inicio del panel'));

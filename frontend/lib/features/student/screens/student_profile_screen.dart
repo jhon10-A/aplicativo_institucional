@@ -82,12 +82,62 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
   String _date(DateTime value) =>
       '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
+  String _level(String value) => switch (value.trim().toUpperCase()) {
+    'INICIAL' => 'Inicial',
+    'PRIMARIA' => 'Primaria',
+    'SECUNDARIA' => 'Secundaria',
+    _ => value,
+  };
+  String _enrollmentStatus(String value) =>
+      switch (value.trim().toUpperCase()) {
+        'ACTIVA' => 'Activa',
+        'RETIRADA' => 'Retirada',
+        'FINALIZADA' => 'Finalizada',
+        _ => value,
+      };
+
   Widget _field(String label, String? value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 5),
     child: Text(
-      '$label: ${value == null || value.isEmpty ? 'No registrado' : value}',
+      '$label: ${value == null || value.trim().isEmpty ? 'No registrado' : value}',
     ),
   );
+
+  Widget _avatar(StudentProfile profile) {
+    const avatarAsset = 'assets/student/avatar_ilustrado.png';
+    final photoUri = profile.fotoUriSegura;
+    final image = photoUri == null
+        ? Image.asset(
+            avatarAsset,
+            key: const ValueKey('student-profile-avatar'),
+            fit: BoxFit.cover,
+            semanticLabel: 'Avatar ilustrado genérico',
+          )
+        : Image.network(
+            photoUri.toString(),
+            key: const ValueKey('student-profile-photo'),
+            fit: BoxFit.cover,
+            semanticLabel: 'Fotografía del estudiante',
+            errorBuilder: (_, _, _) => Image.asset(
+              avatarAsset,
+              key: const ValueKey('student-profile-avatar'),
+              fit: BoxFit.cover,
+              semanticLabel: 'Avatar ilustrado genérico',
+            ),
+          );
+    return Center(
+      child: Tooltip(
+        message: photoUri == null
+            ? 'Avatar ilustrado genérico'
+            : 'Fotografía del estudiante',
+        child: CircleAvatar(
+          radius: 44,
+          backgroundColor: const Color(0xFFE7EFF6),
+          child: ClipOval(child: SizedBox(width: 88, height: 88, child: image)),
+        ),
+      ),
+    );
+  }
 
   String get _message => switch (_error) {
     StudentFailureKind.missingProfile =>
@@ -137,10 +187,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _field(
-                        'Nombres',
-                        '${profile.nombres} ${profile.apellidos}',
-                      ),
+                      _avatar(profile),
+                      const SizedBox(height: 12),
+                      _field('Nombres', profile.nombres),
+                      _field('Apellidos', profile.apellidos),
                       _field('Usuario', profile.nombreUsuario),
                       _field('Código de estudiante', profile.codigoEstudiante),
                       _field(
@@ -173,7 +223,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _field('Periodo', enrollment.periodo),
+                        _field('Año escolar', '${enrollment.inicio.year}'),
                         _field(
                           'Fechas del periodo',
                           '${_date(enrollment.inicio)} – ${_date(enrollment.fin)}',
@@ -182,10 +232,13 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                           'Periodo activo',
                           enrollment.periodoActivo ? 'Sí' : 'No',
                         ),
-                        _field('Nivel', enrollment.nivel),
+                        _field('Nivel', _level(enrollment.nivel)),
                         _field('Grado', enrollment.grado),
                         _field('Sección', enrollment.seccion),
-                        _field('Estado', enrollment.estado),
+                        _field(
+                          'Estado de matrícula',
+                          _enrollmentStatus(enrollment.estado),
+                        ),
                         _field(
                           'Fecha de matrícula',
                           _date(enrollment.fechaMatricula),

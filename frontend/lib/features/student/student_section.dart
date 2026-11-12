@@ -9,6 +9,7 @@ enum StudentSection {
   calificaciones('Calificaciones', Icons.description_outlined),
   progreso('Mi Progreso', Icons.bar_chart_rounded),
   asistencia('Asistencia', Icons.fact_check_outlined),
+  horario('Mi Horario de Clases', Icons.schedule_outlined),
   comunicados('Comunicados', Icons.campaign_outlined);
 
   const StudentSection(this.label, this.icon);

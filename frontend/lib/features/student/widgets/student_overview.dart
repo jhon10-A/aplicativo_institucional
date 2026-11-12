@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../student_api.dart';
 import '../student_profile.dart';
+import '../student_schedule.dart';
 import '../student_section.dart';
 import '../student_theme.dart';
 import 'student_presentation.dart';
@@ -36,6 +37,7 @@ class _StudentOverviewState extends State<StudentOverview> {
   bool _expired = false;
   int _generation = 0;
   final Map<String, List<Map<String, dynamic>>> _data = {};
+  List<StudentSchedule> _schedule = [];
   final Set<String> _busy = {}, _errors = {};
   @override
   void initState() {
@@ -121,6 +123,7 @@ class _StudentOverviewState extends State<StudentOverview> {
     final generation = ++_generation;
     setState(() {
       _data.clear();
+      _schedule = [];
       _errors.clear();
       _busy.clear();
     });
@@ -128,6 +131,7 @@ class _StudentOverviewState extends State<StudentOverview> {
     if (id != null) {
       unawaited(_preview('cursos', 'matriculas/$id/cursos', generation));
       unawaited(_preview('tareas', 'matriculas/$id/tareas', generation));
+      unawaited(_preview('horario', 'matriculas/$id/horario', generation));
     }
     unawaited(
       _preview(
@@ -147,6 +151,18 @@ class _StudentOverviewState extends State<StudentOverview> {
     try {
       final response = await _api.get(path);
       if (!mounted || generation != _generation) return;
+      if (key == 'horario') {
+        final schedule = (response as List)
+            .map(
+              (item) => StudentSchedule.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
+        setState(() {
+          _schedule = schedule;
+          _busy.remove(key);
+        });
+        return;
+      }
       var rows = (response as List).cast<Map<String, dynamic>>().toList();
       if (key == 'tareas') {
         rows = rows
@@ -183,6 +199,127 @@ class _StudentOverviewState extends State<StudentOverview> {
     return d == null
         ? ''
         : '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+  }
+
+  Widget _scheduleSummary() {
+    if (_busy.contains('horario')) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_errors.contains('horario')) {
+      return Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(12),
+            child: Text('No se pudo cargar esta información.'),
+          ),
+          TextButton.icon(
+            onPressed: _reload,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Reintentar'),
+          ),
+        ],
+      );
+    }
+    if (_selected == null) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        child: Text(
+          'Selecciona una matrícula para consultar su horario.',
+          style: TextStyle(color: Color(0xFF617991), fontSize: 12, height: 1.5),
+        ),
+      );
+    }
+    if (_schedule.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        child: Text(
+          'Todavía no hay horarios registrados para esta matrícula.',
+          style: TextStyle(color: Color(0xFF617991), fontSize: 12, height: 1.5),
+        ),
+      );
+    }
+
+    final visible = _schedule.take(3).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const ColoredBox(
+          color: Color(0xFFF1F6FC),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Hora',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: Text(
+                    'Curso',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Aula',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        for (final item in visible)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    '${item.diaCorto} ${item.horaInicio}\n${item.horaFin}',
+                    style: const TextStyle(fontSize: 11, height: 1.4),
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: Text(
+                    item.curso,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    item.aulaDisponible ?? '—',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (_schedule.length > visible.length)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Text(
+              '${_schedule.length - visible.length} horarios más',
+              style: const TextStyle(color: Color(0xFF617991), fontSize: 11),
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _body(String key, StudentSection section, String empty) {
@@ -343,67 +480,12 @@ class _StudentOverviewState extends State<StudentOverview> {
         'No hay comunicados disponibles.',
       ),
     );
-    const schedule = StudentPreviewCard(
+    final schedule = StudentPreviewCard(
       title: 'Mi Horario de Clases',
       icon: Icons.schedule_outlined,
-      onOpen: null,
+      onOpen: () => widget.onSelect(StudentSection.horario),
       actionLabel: 'Ver completo',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ColoredBox(
-            color: Color(0xFFF1F6FC),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'Hora',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: Text(
-                      'Curso',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      'Aula',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 14),
-            child: Text(
-              'El sistema aún no dispone de horarios de clases.',
-              style: TextStyle(
-                color: Color(0xFF617991),
-                fontSize: 12,
-                height: 1.5,
-              ),
-            ),
-          ),
-        ],
-      ),
+      child: _scheduleSummary(),
     );
     final motivation = Padding(
       padding: const EdgeInsets.only(top: 10),

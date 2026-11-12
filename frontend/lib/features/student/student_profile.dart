@@ -6,6 +6,7 @@ class StudentProfile {
       nombres = json['nombres'] as String,
       apellidos = json['apellidos'] as String,
       codigoEstudiante = json['codigoEstudiante'] as String,
+      fotoUrl = json['fotoUrl'] as String?,
       correo = json['correo'] as String?,
       telefono = json['telefono'] as String?,
       documentoIdentidad = json['documentoIdentidad'] as String?,
@@ -19,10 +20,26 @@ class StudentProfile {
   final String nombres;
   final String apellidos;
   final String codigoEstudiante;
+  final String? fotoUrl;
   final String? correo;
   final String? telefono;
   final String? documentoIdentidad;
   final DateTime? fechaNacimiento;
+
+  Uri? get fotoUriSegura {
+    final value = fotoUrl?.trim();
+    if (value == null || value.isEmpty) return null;
+    final uri = Uri.tryParse(value);
+    if (uri == null ||
+        uri.scheme.toLowerCase() != 'https' ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasFragment ||
+        (uri.hasPort && uri.port == 0)) {
+      return null;
+    }
+    return uri;
+  }
 }
 
 class StudentEnrollment {

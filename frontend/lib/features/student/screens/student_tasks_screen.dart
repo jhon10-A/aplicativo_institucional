@@ -44,6 +44,22 @@ class _StudentTasksScreenState extends State<StudentTasksScreen> {
   bool _loading = true;
   StudentFailureKind? _error;
 
+  int? _resolveEnrollment(
+    List<StudentEnrollment> enrollments,
+    int? remembered,
+  ) {
+    if (enrollments.any((enrollment) => enrollment.id == remembered)) {
+      return remembered;
+    }
+    if (enrollments.length == 1) {
+      final enrollment = enrollments.single;
+      return enrollment.estado == 'ACTIVA' && enrollment.periodoActivo
+          ? enrollment.id
+          : null;
+    }
+    return resolveStudentEnrollment(enrollments, null);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -84,7 +100,7 @@ class _StudentTasksScreenState extends State<StudentTasksScreen> {
             .toList();
         if (!mounted || generation != _generation) return;
         setState(() => _enrollments = enrollments);
-        final selected = resolveStudentEnrollment(
+        final selected = _resolveEnrollment(
           enrollments,
           widget.initialEnrollmentId,
         );
@@ -153,6 +169,72 @@ class _StudentTasksScreenState extends State<StudentTasksScreen> {
     _ => 'No se pudieron cargar las tareas. Inténtalo nuevamente.',
   };
 
+  StudentEnrollment? get _selectedEnrollment {
+    for (final enrollment in _enrollments) {
+      if (enrollment.id == _enrollment) return enrollment;
+    }
+    return null;
+  }
+
+  bool get _showEnrollmentSelector {
+    if (_enrollments.length != 1) return _enrollments.isNotEmpty;
+    final enrollment = _enrollments.single;
+    return enrollment.estado != 'ACTIVA' || !enrollment.periodoActivo;
+  }
+
+  String _displayGrade(String grade) {
+    final normalized = grade.trim().toLowerCase();
+    const ordinals = {
+      'primero': '1.º',
+      'primer': '1.º',
+      'segundo': '2.º',
+      'tercero': '3.º',
+      'tercer': '3.º',
+      'cuarto': '4.º',
+      'quinto': '5.º',
+      'sexto': '6.º',
+    };
+    final ordinal = ordinals[normalized];
+    if (ordinal != null) return '$ordinal grado';
+    if (RegExp(r'^[1-9][0-9]*$').hasMatch(normalized)) {
+      return '$normalized.º grado';
+    }
+    return normalized.isEmpty ? grade : '$grade grado';
+  }
+
+  String _displayLevel(String level) => level
+      .trim()
+      .toLowerCase()
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty)
+      .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+      .join(' ');
+
+  Widget _enrollmentHeading(StudentEnrollment enrollment) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Año escolar: ${enrollment.inicio.year}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${_displayLevel(enrollment.nivel)} · '
+            '${_displayGrade(enrollment.grado)} · '
+            'Sección ${enrollment.seccion}',
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Matrícula: ${enrollment.estado == 'ACTIVA' ? 'Activa' : enrollment.estado}',
+          ),
+        ],
+      ),
+    ),
+  );
+
   Widget _summary(StudentTask task) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -181,13 +263,15 @@ class _StudentTasksScreenState extends State<StudentTasksScreen> {
               icon: Icons.assignment_outlined,
             ),
             const SizedBox(height: 16),
-            if (_enrollments.isNotEmpty)
+            if (_selectedEnrollment case final enrollment?)
+              _enrollmentHeading(enrollment),
+            if (_showEnrollmentSelector)
               DropdownButtonFormField<int>(
                 key: ValueKey('task-enrollment-$_enrollment'),
                 initialValue: _enrollment,
                 isExpanded: true,
                 decoration: const InputDecoration(
-                  labelText: 'Matrícula y periodo',
+                  labelText: 'Matrícula y año escolar',
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 12,
@@ -200,7 +284,9 @@ class _StudentTasksScreenState extends State<StudentTasksScreen> {
                     DropdownMenuItem(
                       value: m.id,
                       child: Text(
-                        '${m.periodo} · ${m.nivel} ${m.grado} ${m.seccion} · ${m.estado}',
+                        '${m.inicio.year} · ${_displayLevel(m.nivel)} · '
+                        '${_displayGrade(m.grado)} · Sección ${m.seccion} · '
+                        '${m.estado == 'ACTIVA' ? 'Activa' : m.estado}',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),

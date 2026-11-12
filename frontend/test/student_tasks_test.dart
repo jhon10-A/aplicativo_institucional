@@ -1,5 +1,3 @@
-import 'student_test_navigation.dart';
-
 import 'dart:async';
 import 'dart:convert';
 
@@ -16,19 +14,29 @@ import 'auth_test.dart' show responseFixture;
 import 'student_profile_test.dart' show enrollmentFixture;
 import 'student_courses_test.dart' show courseFixture;
 
-Map<String, Object?> taskFixture({bool submitted = false}) => {
-  'id': 701,
+Map<String, Object?> taskFixture({
+  int id = 701,
+  String title = 'Álgebra',
+  bool submitted = false,
+  bool reviewed = true,
+  String? deadline,
+}) => {
+  'id': id,
   'asignacionId': 501,
   'cursoId': 1,
   'curso': 'Matemática',
   'docente': 'Docente Prueba',
-  'titulo': 'Álgebra',
+  'titulo': title,
   'descripcion': 'Resolver ejercicios',
   'archivoUrl': null,
   'fechaPublicacion': '2026-04-01T08:00:00',
-  'fechaLimite': '2026-04-10T18:00:00',
+  'fechaLimite': deadline ?? '2026-04-10T18:00:00',
   'puntajeMaximo': 20,
-  'estadoEntrega': submitted ? 'REVISADA' : 'PENDIENTE',
+  'estadoEntrega': !submitted
+      ? 'PENDIENTE'
+      : reviewed
+      ? 'REVISADA'
+      : 'ENTREGADA',
   'entrega': submitted
       ? {
           'id': 801,
@@ -37,7 +45,7 @@ Map<String, Object?> taskFixture({bool submitted = false}) => {
           'fechaEntrega': '2026-04-05T10:00:00',
           'puntaje': 18,
           'retroalimentacion': 'Buen trabajo',
-          'fechaRevision': '2026-04-06T10:00:00',
+          'fechaRevision': reviewed ? '2026-04-06T10:00:00' : null,
         }
       : null,
 };
@@ -69,12 +77,14 @@ void main() {
       matching: find.byType(DropdownButtonFormField<int>),
     );
     final desired = int.tryParse(text.split(' ').first);
-    if (label == 'Matrícula y periodo' &&
+    if (label == 'Matrícula y año escolar' &&
         desired != null &&
+        dropdown.evaluate().isNotEmpty &&
         tester.widget<DropdownButtonFormField<int>>(dropdown).initialValue ==
             desired) {
       return;
     }
+    if (dropdown.evaluate().isEmpty) return;
     await tester.ensureVisible(dropdown);
     await tester.tap(dropdown);
     await tester.pumpAndSettle();
@@ -112,10 +122,11 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(paths, ['/api/estudiante/matriculas']);
-      await choose(tester, 'Matrícula y periodo', '2026 ·');
+      await choose(tester, 'Matrícula y año escolar', '2026 ·');
       expect(paths.last, '/api/estudiante/matriculas/2026/tareas');
+      expect(find.text('Año escolar: 2026'), findsOneWidget);
       expect(find.text('Fecha límite: 10/04/2026 18:00'), findsOneWidget);
-      expect(find.text('Estado de entrega: Pendiente'), findsOneWidget);
+      expect(find.text('Estado de entrega: Vencida'), findsOneWidget);
       await choose(tester, 'Curso', 'Matemática');
       expect(paths.last, '/api/estudiante/matriculas/2026/cursos/501/tareas');
       await tester.tap(find.text('Álgebra'));
@@ -131,7 +142,7 @@ void main() {
       await tester.tap(find.text('Volver a tareas'));
       await tester.pumpAndSettle();
       expect(paths.last, '/api/estudiante/matriculas/2026/cursos/501/tareas');
-      await choose(tester, 'Matrícula y periodo', '2025 ·');
+      await choose(tester, 'Matrícula y año escolar', '2025 ·');
       expect(paths.last, '/api/estudiante/matriculas/2025/tareas');
       expect(find.text('Todos los cursos'), findsOneWidget);
     },
@@ -155,11 +166,59 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await choose(tester, 'Matrícula y periodo', '2026 ·');
+    await choose(tester, 'Matrícula y año escolar', '2026 ·');
     expect(
       find.text('No hay tareas disponibles para esta selección.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('año escolar y estado usan fecha y entrega de la API', (
+    tester,
+  ) async {
+    final enrollment = enrollmentFixture('2026');
+    (enrollment['periodo'] as Map<String, Object?>)['nombre'] =
+        'TEST_EST_a144bf99';
+    final pendingDeadline = DateTime.now()
+        .add(const Duration(days: 1))
+        .toIso8601String();
+    await tester.pumpWidget(
+      screen(
+        api(
+          (request) async => request.url.path.endsWith('/matriculas')
+              ? json([enrollment])
+              : request.url.path.endsWith('/cursos')
+              ? json([])
+              : json([
+                  taskFixture(deadline: pendingDeadline),
+                  taskFixture(
+                    id: 702,
+                    title: 'Tarea vencida',
+                    deadline: '2020-04-10T18:00:00',
+                  ),
+                  taskFixture(
+                    id: 703,
+                    title: 'Tarea entregada',
+                    submitted: true,
+                    reviewed: false,
+                  ),
+                  taskFixture(
+                    id: 704,
+                    title: 'Tarea revisada',
+                    submitted: true,
+                  ),
+                ]),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Año escolar: 2026'), findsOneWidget);
+    expect(find.text('Año escolar: TEST_EST_a144bf99'), findsNothing);
+    expect(find.byType(DropdownButtonFormField<int>), findsNothing);
+    expect(find.text('Estado de entrega: Pendiente'), findsOneWidget);
+    expect(find.text('Estado de entrega: Vencida'), findsOneWidget);
+    expect(find.text('Estado de entrega: Entregada'), findsOneWidget);
+    expect(find.text('Estado de entrega: Revisada'), findsOneWidget);
   });
 
   testWidgets(
@@ -186,7 +245,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await choose(tester, 'Matrícula y periodo', '2026 ·');
+      await choose(tester, 'Matrícula y año escolar', '2026 ·');
       expect(
         find.text('No se pudo conectar. Comprueba tu conexión.'),
         findsOneWidget,
@@ -258,8 +317,9 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('student-shortcut-tareas')));
     await tester.pumpAndSettle();
-    await openCompleteStudentSection(tester, 'tareas');
+    expect(find.text('Abrir pantalla completa'), findsNothing);
     expect(find.byType(StudentTasksScreen), findsOneWidget);
+    expect(find.text('No tienes matrículas registradas.'), findsOneWidget);
     await tester.tap(find.text('Volver al inicio del panel'));
     await tester.pumpAndSettle();
     expect(find.text('Hola,'), findsOneWidget);
@@ -306,7 +366,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await choose(tester, 'Matrícula y periodo', '2026 ·');
+      await choose(tester, 'Matrícula y año escolar', '2026 ·');
       expect(tester.takeException(), isNull);
       await tester.ensureVisible(find.text('Álgebra'));
       await tester.tap(find.text('Álgebra'));

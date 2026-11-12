@@ -117,7 +117,16 @@ class _StudentHomeState extends State<StudentHome> {
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           key: ValueKey('student-shortcut-${section.name}'),
-          onTap: () => (widget.onQuickView ?? onSelect)(section),
+          onTap: () {
+            if (section == StudentSection.cursos ||
+                section == StudentSection.tareas ||
+                section == StudentSection.calificaciones ||
+                section == StudentSection.progreso) {
+              onSelect(section);
+            } else {
+              (widget.onQuickView ?? onSelect)(section);
+            }
+          },
           borderRadius: BorderRadius.circular(18),
           child: Ink(
             decoration: BoxDecoration(

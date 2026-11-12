@@ -9,28 +9,30 @@ import 'package:aplicativo_institucional/auth.dart';
 import 'package:aplicativo_institucional/features/student/student_api.dart';
 import 'package:aplicativo_institucional/features/student/screens/student_profile_screen.dart';
 import 'package:aplicativo_institucional/features/student/screens/student_panel.dart';
+import 'package:aplicativo_institucional/features/student/student_profile.dart';
 
 import 'auth_test.dart' show responseFixture;
 
-Map<String, Object?> profileFixture() => {
+Map<String, Object?> profileFixture({String? photoUrl}) => {
   'id': 11,
   'usuarioId': 1,
   'nombreUsuario': 'fixture1',
   'nombres': 'Primera',
   'apellidos': 'Persona',
   'codigoEstudiante': 'E1',
+  'fotoUrl': photoUrl,
   'correo': null,
   'telefono': null,
   'documentoIdentidad': null,
   'fechaNacimiento': null,
 };
-Map<String, Object?> enrollmentFixture(String period) => {
+Map<String, Object?> enrollmentFixture(String period, {String? periodName}) => {
   'id': int.parse(period),
   'estado': 'ACTIVA',
   'fechaMatricula': '$period-03-01',
   'periodo': {
     'id': int.parse(period),
-    'nombre': period,
+    'nombre': periodName ?? period,
     'fechaInicio': '$period-03-01',
     'fechaFin': '$period-12-31',
     'activo': true,
@@ -70,7 +72,7 @@ void main() {
             if (request.url.path.endsWith('/perfil')) return pending.future;
             return http.Response(
               jsonEncode([
-                enrollmentFixture('2026'),
+                enrollmentFixture('2026', periodName: 'TEST_EST_2026'),
                 enrollmentFixture('2025'),
               ]),
               200,
@@ -81,11 +83,23 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       pending.complete(http.Response(jsonEncode(profileFixture()), 200));
       await tester.pumpAndSettle();
-      expect(find.text('Nombres: Primera Persona'), findsOneWidget);
+      expect(find.text('Nombres: Primera'), findsOneWidget);
+      expect(find.text('Apellidos: Persona'), findsOneWidget);
       expect(find.text('Código de estudiante: E1'), findsOneWidget);
       expect(find.text('Correo: No registrado'), findsOneWidget);
-      expect(find.text('Periodo: 2026'), findsOneWidget);
-      expect(find.text('Periodo: 2025'), findsOneWidget);
+      expect(
+        find.text('Documento de identidad: No registrado'),
+        findsOneWidget,
+      );
+      expect(find.text('Fecha de nacimiento: No registrado'), findsOneWidget);
+      expect(find.text('Teléfono: No registrado'), findsOneWidget);
+      expect(find.text('Año escolar: 2026'), findsOneWidget);
+      expect(find.text('Año escolar: 2025'), findsOneWidget);
+      expect(find.text('Nivel: Secundaria'), findsNWidgets(2));
+      expect(find.text('Grado: Primero'), findsNWidgets(2));
+      expect(find.text('Sección: A'), findsNWidgets(2));
+      expect(find.text('Estado de matrícula: Activa'), findsNWidgets(2));
+      expect(find.textContaining('TEST_EST_2026'), findsNothing);
       expect(find.textContaining('isolated-test-token'), findsNothing);
     },
   );
@@ -113,7 +127,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Nombres: Primera Persona'), findsOneWidget);
+    expect(find.text('Nombres: Primera'), findsOneWidget);
     expect(find.text('No tienes matrículas registradas.'), findsOneWidget);
   });
 
@@ -138,7 +152,7 @@ void main() {
     expect(find.textContaining('private detail'), findsNothing);
     await tester.tap(find.text('Reintentar'));
     await tester.pumpAndSettle();
-    expect(find.text('Nombres: Primera Persona'), findsOneWidget);
+    expect(find.text('Nombres: Primera'), findsOneWidget);
   });
 
   testWidgets('gestiona 401 y 403 sin exponer respuestas del servidor', (
@@ -213,7 +227,87 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('student-nav-perfil')));
     await tester.pumpAndSettle();
     expect(find.text('Mi perfil'), findsOneWidget);
-    expect(find.text('Nombres: Primera Persona'), findsOneWidget);
+    expect(find.text('Nombres: Primera'), findsOneWidget);
+  });
+
+  test('solo acepta fotografia con URL HTTPS valida', () {
+    final safeProfile = StudentProfile.fromJson(
+      profileFixture(photoUrl: 'https://images.example.test/estudiante.png'),
+    );
+    expect(
+      safeProfile.fotoUriSegura,
+      Uri.parse('https://images.example.test/estudiante.png'),
+    );
+    for (final url in [
+      'http://images.example.test/estudiante.png',
+      'https://usuario@images.example.test/estudiante.png',
+      'https://images.example.test/estudiante.png#fragmento',
+      'no es una url',
+    ]) {
+      expect(
+        StudentProfile.fromJson(profileFixture(photoUrl: url)).fotoUriSegura,
+        isNull,
+        reason: url,
+      );
+    }
+  });
+
+  testWidgets('conserva el avatar si fotoUrl no es segura', (tester) async {
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(
+      screen(
+        () => client(
+          (request) async => http.Response(
+            jsonEncode(
+              request.url.path.endsWith('/perfil')
+                  ? profileFixture(
+                      photoUrl: 'http://images.example.test/estudiante.png',
+                    )
+                  : [],
+            ),
+            200,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('student-profile-photo')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('student-profile-avatar')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('la barra inferior abre Perfil y permite volver a Inicio', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StudentPanel(
+          session: Session.fromJson(responseFixture()),
+          onLogout: () {},
+          studentApiFactory: () => client(
+            (request) async => http.Response(
+              jsonEncode(
+                request.url.path.endsWith('/perfil') ? profileFixture() : [],
+              ),
+              200,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('student-bottom-perfil')));
+    await tester.pumpAndSettle();
+    expect(find.text('Mi perfil'), findsOneWidget);
+    expect(find.text('Nombres: Primera'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Volver al inicio del panel'));
+    await tester.tap(find.text('Volver al inicio del panel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hola,'), findsOneWidget);
+    expect(find.text('Mi perfil'), findsNothing);
   });
 
   testWidgets('perfil se adapta a movil con texto ampliado', (tester) async {

@@ -6,8 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:aplicativo_institucional/auth.dart';
+import 'package:aplicativo_institucional/features/student/screens/student_courses_screen.dart';
+import 'package:aplicativo_institucional/features/student/screens/student_grades_screen.dart';
+import 'package:aplicativo_institucional/features/student/screens/student_progress_screen.dart';
 import 'package:aplicativo_institucional/features/student/screens/student_panel.dart';
 import 'package:aplicativo_institucional/features/student/screens/student_submission_screen.dart';
+import 'package:aplicativo_institucional/features/student/screens/student_tasks_screen.dart';
 import 'package:aplicativo_institucional/features/student/student_api.dart';
 import 'package:aplicativo_institucional/features/student/student_section.dart';
 import 'package:aplicativo_institucional/features/student/widgets/student_quick_view.dart';
@@ -116,42 +120,45 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Mi Progreso usa notas y estados recibidos y abre el detalle de tarea',
-    (tester) async {
-      final paths = <String>[];
-      await tester.pumpWidget(
-        MaterialApp(
-          home: StudentPanel(
-            session: Session.fromJson(responseFixture()),
-            onLogout: () {},
-            studentApiFactory: () => api((r) async {
-              paths.add(r.url.path);
-              return fixtureResponse(r);
-            }),
-          ),
+  testWidgets('Mi Progreso muestra estados reales y abre el detalle de tarea', (
+    tester,
+  ) async {
+    final paths = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StudentPanel(
+          session: Session.fromJson(responseFixture()),
+          onLogout: () {},
+          studentApiFactory: () => api((r) async {
+            paths.add(r.url.path);
+            return fixtureResponse(r);
+          }),
         ),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('student-shortcut-asistencia')),
-        findsNothing,
-      );
-      final card = find.byKey(const ValueKey('student-shortcut-progreso'));
-      await tester.ensureVisible(card);
-      await tester.tap(card);
-      await tester.pumpAndSettle();
-      expect(inModal(find.text('Calificaciones registradas')), findsOneWidget);
-      expect(inModal(find.text('0.00')), findsOneWidget);
-      expect(inModal(find.text('Estado de tus tareas')), findsOneWidget);
-      expect(inModal(find.textContaining('Pendiente')), findsOneWidget);
-      await tester.ensureVisible(inModal(find.text('Álgebra')));
-      await tester.tap(inModal(find.text('Álgebra')));
-      await tester.pumpAndSettle();
-      expect(paths, contains('/api/estudiante/matriculas/2026/tareas/701'));
-      expect(find.text('Detalle de la tarea'), findsOneWidget);
-    },
-  );
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('student-shortcut-asistencia')),
+      findsNothing,
+    );
+    final card = find.byKey(const ValueKey('student-shortcut-progreso'));
+    await tester.ensureVisible(card);
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+    expect(find.byType(StudentQuickView), findsNothing);
+    expect(find.byType(StudentProgressScreen), findsOneWidget);
+    expect(find.text('Año escolar: 2026'), findsOneWidget);
+    expect(find.text('Secundaria · 1.º grado · Sección A'), findsOneWidget);
+    expect(find.text('Matrícula: Activa'), findsOneWidget);
+    expect(find.text('Pendientes: 1'), findsOneWidget);
+    expect(find.text('Álgebra'), findsOneWidget);
+    expect(find.text('Nota registrada'), findsNothing);
+    await tester.ensureVisible(find.text('Álgebra'));
+    await tester.tap(find.text('Álgebra'));
+    await tester.pumpAndSettle();
+    expect(paths, contains('/api/estudiante/matriculas/2026/tareas/701'));
+    expect(find.text('Detalle de la tarea'), findsOneWidget);
+  });
 
   final sections = {
     StudentSection.cursos: ('Matemática', '/cursos/501', 'Detalle del curso'),
@@ -189,6 +196,121 @@ void main() {
         await tester.ensureVisible(card);
         await tester.tap(card);
         await tester.pumpAndSettle();
+        if (entry.key == StudentSection.cursos) {
+          expect(find.byType(StudentQuickView), findsNothing);
+          expect(find.byType(StudentCoursesScreen), findsOneWidget);
+          expect(find.text('Año escolar: 2026'), findsOneWidget);
+          expect(paths, contains('/api/estudiante/matriculas/2026/cursos'));
+          await tester.ensureVisible(find.text('Volver al inicio del panel'));
+          await tester.tap(find.text('Volver al inicio del panel'));
+          await tester.pumpAndSettle();
+          expect(find.byType(StudentCoursesScreen), findsNothing);
+          expect(find.text('Hola,'), findsOneWidget);
+          expect(tester.takeException(), isNull);
+          return;
+        }
+        if (entry.key == StudentSection.tareas) {
+          expect(find.byType(StudentQuickView), findsNothing);
+          expect(find.byType(StudentTasksScreen), findsOneWidget);
+          expect(find.text('Año escolar: 2026'), findsOneWidget);
+          expect(paths, contains('/api/estudiante/matriculas/2026/tareas'));
+          await tester.tap(find.text(entry.value.$1));
+          await tester.pumpAndSettle();
+          expect(find.text(entry.value.$3), findsOneWidget);
+          expect(
+            paths,
+            contains('/api/estudiante/matriculas/2026${entry.value.$2}'),
+          );
+          await tester.ensureVisible(find.text('Volver a tareas'));
+          await tester.tap(find.text('Volver a tareas'));
+          await tester.pumpAndSettle();
+          expect(find.byType(StudentTasksScreen), findsOneWidget);
+          await tester.ensureVisible(find.text('Volver al inicio del panel'));
+          await tester.tap(find.text('Volver al inicio del panel'));
+          await tester.pumpAndSettle();
+          expect(find.byType(StudentTasksScreen), findsNothing);
+          expect(find.text('Hola,'), findsOneWidget);
+          expect(tester.takeException(), isNull);
+          return;
+        }
+        if (entry.key == StudentSection.calificaciones) {
+          expect(find.byType(StudentQuickView), findsNothing);
+          expect(find.byType(StudentGradesScreen), findsOneWidget);
+          expect(find.text('Año escolar: 2026'), findsOneWidget);
+          expect(
+            paths,
+            contains('/api/estudiante/matriculas/2026/calificaciones'),
+          );
+          final exam = find.ancestor(
+            of: find.text('Examen'),
+            matching: find.byType(ListTile),
+          );
+          await tester.ensureVisible(exam);
+          await tester.tap(exam);
+          await tester.pumpAndSettle();
+          expect(find.text(entry.value.$3), findsOneWidget);
+          expect(
+            paths,
+            contains('/api/estudiante/matriculas/2026${entry.value.$2}'),
+          );
+          await tester.ensureVisible(find.text('Volver a calificaciones'));
+          await tester.tap(find.text('Volver a calificaciones'));
+          await tester.pumpAndSettle();
+          expect(find.byType(StudentGradesScreen), findsOneWidget);
+          await tester.ensureVisible(find.text('Volver al inicio del panel'));
+          await tester.tap(find.text('Volver al inicio del panel'));
+          await tester.pumpAndSettle();
+          expect(find.byType(StudentGradesScreen), findsNothing);
+          expect(find.text('Hola,'), findsOneWidget);
+          expect(tester.takeException(), isNull);
+          return;
+        }
+        if (entry.key == StudentSection.progreso) {
+          expect(find.byType(StudentQuickView), findsNothing);
+          expect(find.byType(StudentProgressScreen), findsOneWidget);
+          expect(find.text('Año escolar: 2026'), findsOneWidget);
+          expect(find.text('Pendientes: 1'), findsOneWidget);
+          expect(find.text('Vencidas: 0'), findsOneWidget);
+          expect(find.text('Calificaciones por curso'), findsOneWidget);
+          expect(find.text('Examen'), findsOneWidget);
+          final task = find.ancestor(
+            of: find.text('Álgebra'),
+            matching: find.byType(ListTile),
+          );
+          await tester.ensureVisible(task);
+          await tester.tap(task);
+          await tester.pumpAndSettle();
+          expect(find.text('Detalle de la tarea'), findsOneWidget);
+          expect(paths, contains('/api/estudiante/matriculas/2026/tareas/701'));
+          await tester.ensureVisible(find.text('Volver a tareas'));
+          await tester.tap(find.text('Volver a tareas'));
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(find.text('Volver al inicio del panel'));
+          await tester.tap(find.text('Volver al inicio del panel'));
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(card);
+          await tester.tap(card);
+          await tester.pumpAndSettle();
+          final grade = find.ancestor(
+            of: find.text('Examen'),
+            matching: find.byType(ListTile),
+          );
+          await tester.ensureVisible(grade);
+          await tester.tap(grade);
+          await tester.pumpAndSettle();
+          expect(find.text('Detalle de la calificación'), findsOneWidget);
+          expect(
+            paths,
+            contains('/api/estudiante/matriculas/2026/calificaciones/901'),
+          );
+          await tester.ensureVisible(find.text('Volver al inicio del panel'));
+          await tester.tap(find.text('Volver al inicio del panel'));
+          await tester.pumpAndSettle();
+          expect(find.byType(StudentProgressScreen), findsNothing);
+          expect(find.text('Hola,'), findsOneWidget);
+          expect(tester.takeException(), isNull);
+          return;
+        }
         expect(find.byType(StudentQuickView), findsOneWidget);
         expect(find.byType(BackdropFilter), findsOneWidget);
         expect(inModal(find.text(entry.value.$1)), findsOneWidget);

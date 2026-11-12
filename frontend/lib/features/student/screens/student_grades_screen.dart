@@ -43,6 +43,22 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   bool _loading = true;
   StudentFailureKind? _error;
 
+  int? _resolveEnrollment(
+    List<StudentEnrollment> enrollments,
+    int? remembered,
+  ) {
+    if (enrollments.any((enrollment) => enrollment.id == remembered)) {
+      return remembered;
+    }
+    if (enrollments.length == 1) {
+      final enrollment = enrollments.single;
+      return enrollment.estado == 'ACTIVA' && enrollment.periodoActivo
+          ? enrollment.id
+          : null;
+    }
+    return resolveStudentEnrollment(enrollments, null);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -90,7 +106,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
             .toList();
         if (!mounted || generation != _generation) return;
         setState(() => _enrollments = enrollments);
-        final selected = resolveStudentEnrollment(
+        final selected = _resolveEnrollment(
           enrollments,
           widget.initialEnrollmentId,
         );
@@ -147,15 +163,92 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     StudentFailureKind.network => 'No se pudo conectar. Comprueba tu conexión.',
     _ => 'No se pudieron cargar las calificaciones. Inténtalo nuevamente.',
   };
+
+  StudentEnrollment? get _selectedEnrollment {
+    for (final enrollment in _enrollments) {
+      if (enrollment.id == _enrollment) return enrollment;
+    }
+    return null;
+  }
+
+  bool get _showEnrollmentSelector {
+    if (_enrollments.length != 1) return _enrollments.isNotEmpty;
+    final enrollment = _enrollments.single;
+    return enrollment.estado != 'ACTIVA' || !enrollment.periodoActivo;
+  }
+
+  String _displayGrade(String grade) {
+    final normalized = grade.trim().toLowerCase();
+    if (normalized.contains('grado')) return grade.trim();
+    const ordinals = {
+      'primero': '1.º',
+      'primer': '1.º',
+      'segundo': '2.º',
+      'tercero': '3.º',
+      'tercer': '3.º',
+      'cuarto': '4.º',
+      'quinto': '5.º',
+      'sexto': '6.º',
+    };
+    final ordinal = ordinals[normalized];
+    if (ordinal != null) return '$ordinal grado';
+    final numericGrade = RegExp(r'^([1-9][0-9]*)[.º°]*$')
+        .firstMatch(normalized);
+    if (numericGrade != null) {
+      return '${numericGrade.group(1)}.º grado';
+    }
+    return normalized.isEmpty ? grade : '$grade grado';
+  }
+
+  String _displayLevel(String level) => level
+      .trim()
+      .toLowerCase()
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty)
+      .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+      .join(' ');
+
+  Widget _enrollmentHeading(StudentEnrollment enrollment) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Año escolar: ${enrollment.inicio.year}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${_displayLevel(enrollment.nivel)} · '
+            '${_displayGrade(enrollment.grado)} · '
+            'Sección ${enrollment.seccion}',
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Matrícula: ${enrollment.estado == 'ACTIVA' ? 'Activa' : enrollment.estado}',
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Map<String, List<StudentGrade>> get _gradesByCourse {
+    final grouped = <String, List<StudentGrade>>{};
+    for (final grade in _grades) {
+      grouped.putIfAbsent(grade.curso, () => []).add(grade);
+    }
+    return grouped;
+  }
+
   String _date(DateTime date) =>
       '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   Widget _summary(StudentGrade grade) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('Curso: ${grade.curso}'),
-      Text('Periodo: ${grade.periodo}'),
       Text('Etapa: ${grade.etapa}'),
       Text('Nota registrada: ${grade.nota.toStringAsFixed(2)} / 20'),
+      Text('Registrada: ${_date(grade.registradoEn)}'),
     ],
   );
 
@@ -178,13 +271,15 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
             const SizedBox(height: 8),
             const Text('Solo se muestran notas registradas.'),
             const SizedBox(height: 16),
-            if (_enrollments.isNotEmpty)
+            if (_selectedEnrollment case final enrollment?)
+              _enrollmentHeading(enrollment),
+            if (_showEnrollmentSelector)
               DropdownButtonFormField<int>(
                 key: ValueKey('grade-enrollment-$_enrollment'),
                 initialValue: _enrollment,
                 isExpanded: true,
                 decoration: const InputDecoration(
-                  labelText: 'Matrícula y periodo',
+                  labelText: 'Matrícula y año escolar',
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 12,
@@ -197,7 +292,9 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                     DropdownMenuItem(
                       value: m.id,
                       child: Text(
-                        '${m.periodo} · ${m.nivel} ${m.grado} ${m.seccion} · ${m.estado}',
+                        '${m.inicio.year} · ${_displayLevel(m.nivel)} · '
+                        '${_displayGrade(m.grado)} · Sección ${m.seccion} · '
+                        '${m.estado == 'ACTIVA' ? 'Activa' : m.estado}',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -275,12 +372,12 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                         grade.concepto,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
+                      Text('Curso: ${grade.curso}'),
                       _summary(grade),
                       Text('Docente: ${grade.docente}'),
                       Text('Nivel: ${grade.nivel}'),
                       Text('Grado: ${grade.grado}'),
                       Text('Sección: ${grade.seccion}'),
-                      Text('Registrada: ${_date(grade.registradoEn)}'),
                       const SizedBox(height: 12),
                       Text(
                         grade.observacion?.trim().isNotEmpty == true
@@ -296,16 +393,32 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                 'No hay calificaciones registradas para esta selección.',
               )
             else
-              for (final grade in _grades)
+              for (final course in _gradesByCourse.entries)
                 Card(
-                  child: ListTile(
-                    title: Text(grade.concepto),
-                    subtitle: _summary(grade),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _load(
-                      enrollment: _enrollment,
-                      course: _course,
-                      grade: grade.id,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                          child: Text(
+                            course.key,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                        for (final grade in course.value)
+                          ListTile(
+                            title: Text(grade.concepto),
+                            subtitle: _summary(grade),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => _load(
+                              enrollment: _enrollment,
+                              course: _course,
+                              grade: grade.id,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),

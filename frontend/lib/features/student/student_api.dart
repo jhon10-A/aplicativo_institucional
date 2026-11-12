@@ -194,7 +194,7 @@ class StudentApi {
             !RegExp(r'^matriculas/[1-9][0-9]*/cursos(?:/[1-9][0-9]*)?$')
                 .hasMatch(resource) &&
             !RegExp(
-              r'^matriculas/[1-9][0-9]*/(?:(?:tareas|calificaciones|asistencias)(?:/[1-9][0-9]*)?|cursos/[1-9][0-9]*/(?:tareas|calificaciones|asistencias))$',
+              r'^matriculas/[1-9][0-9]*/(?:(?:tareas|calificaciones|asistencias)(?:/[1-9][0-9]*)?|horario|cursos/[1-9][0-9]*/(?:tareas|calificaciones|asistencias))$',
             ).hasMatch(resource)) ||
         base == null ||
         !['http', 'https'].contains(base.scheme) ||
@@ -243,6 +243,7 @@ class StudentApi {
               resource.contains('/tareas') ||
               resource.contains('/calificaciones') ||
               resource.contains('/asistencias') ||
+              resource.contains('/horario') ||
               resource.contains('comunicados')) {
             final body = jsonDecode(utf8.decode(response.bodyBytes));
             if (body is Map && body['codigo'] == 'SIN_PERFIL') {
