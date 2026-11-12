@@ -46,6 +46,8 @@ flutter run -d chrome --web-hostname localhost --web-port 5173 --dart-define=API
 
 `API_BASE_URL` es obligatoria, sin valor predeterminado ni IP personal. Debe ser la URL raíz del backend (sin `/api`, parámetros, credenciales o fragmentos). Si cambia, reiniciar Flutter con el nuevo `--dart-define`; hot reload no modifica esta configuración.
 
+Si Flutter Web se sirve en `http://localhost:5174`, el backend debe iniciarse (o reiniciarse) con `APP_CORS_ALLOWED_ORIGIN=http://localhost:5174` y Flutter con `--web-port 5174 --dart-define=API_BASE_URL=http://localhost:8080`. CORS permite un solo origen exacto; `localhost:5173`, `localhost:5174` y `127.0.0.1:5174` son orígenes distintos. No hace falta cambiar la configuración compartida de Spring Security.
+
 ## Emulador Android
 
 Con el backend ejecutándose y un emulador Android estándar iniciado:

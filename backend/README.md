@@ -201,7 +201,7 @@ Se comprueban login correcto y DTO seguro, acceso público/protegido, credencial
 
 ## Flutter y CORS local
 
-Para Chrome configurar APP_CORS_ALLOWED_ORIGIN=http://localhost:5173 en la terminal del backend antes del arranque. Solo se acepta ese origen explícito; sin configuración no se habilitan orígenes externos. No se admiten comodines. Ver ../frontend/README.md para comandos completos de Chrome, Android y comprobación manual. No activar el inicializador para probar esta integración con una cuenta ya existente.
+Para Chrome configurar `APP_CORS_ALLOWED_ORIGIN` en la terminal del backend antes del arranque con el origen exacto de Flutter: por ejemplo, `http://localhost:5173` o `http://localhost:5174`. Solo se acepta ese origen explícito; sin configuración no se habilitan orígenes externos. No se admiten comodines. Si se cambia, reiniciar el backend. Ver ../frontend/README.md para comandos completos de Chrome, Android y comprobación manual. No activar el inicializador para probar esta integración con una cuenta ya existente.
 
 ## Configuración local y clonación desde GitHub
 
