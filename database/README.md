@@ -18,3 +18,12 @@ El script contiene **25 sentencias CREATE TABLE**, todas con clave primaria y mo
 El backend utiliza `jdbc:mysql://localhost:3307/db_institucional`, el driver `com.mysql.cj.jdbc.Driver` y `spring.jpa.hibernate.ddl-auto=validate` para comprobar el esquema sin crear ni alterar tablas. Las credenciales se suministran en el archivo local ignorado o mediante el entorno.
 
 El archivo se comprobó estáticamente; no se ejecutó contra ninguna base de datos.
+
+## Migración de horario de clases
+
+`02_horario_clase.sql` agrega la tabla `horario_clase` a una base existente y
+requiere que `01_estructura.sql` ya se haya aplicado. Ejecutar esta migración
+una sola vez contra `db_institucional`; no volver a ejecutar el script inicial.
+La migración no inserta horarios ni otros datos. Las horas y los días se
+validan en MySQL; los cruces entre sesiones requieren validación transaccional
+en el servicio que registre horarios.
