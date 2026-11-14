@@ -1,4 +1,4 @@
-# Frontend institucional: login Flutter
+ñ# Frontend institucional: login Flutter
 
 La app envía `POST /api/auth/login` con JSON `nombreUsuario` y `password`. Lee la respuesta real (`accessToken`, `tokenType`, `expiresAt`, `usuario`) y muestra nombres, apellidos y roles recibidos. No incluye cuentas simuladas, registro público ni información académica.
 
