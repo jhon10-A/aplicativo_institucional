@@ -2,7 +2,6 @@ package pe.edu.micaelabastidas.backend.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,24 +11,21 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DocenteRequestDto {
 
-    @NotBlank(message = "El DNI es obligatorio")
-    @Size(min = 8, max = 8, message = "El DNI debe tener 8 dígitos")
-    private String dni;
+    @NotBlank(message = "El documento de identidad es obligatorio")
+    private String documentoIdentidad;
 
     @NotBlank(message = "La especialidad es obligatoria")
     private String especialidad;
 
-    private String telefono;
-
     @NotNull(message = "El ID de usuario asociado es obligatorio")
     private Long usuarioId;
 
-    public String getDni() {
-        return dni;
+    public String getDocumentoIdentidad() {
+        return documentoIdentidad;
     }
 
-    public void setDni(String dni) {
-        this.dni = dni;
+    public void setDocumentoIdentidad(String documentoIdentidad) {
+        this.documentoIdentidad = documentoIdentidad;
     }
 
     public String getEspecialidad() {
@@ -38,14 +34,6 @@ public class DocenteRequestDto {
 
     public void setEspecialidad(String especialidad) {
         this.especialidad = especialidad;
-    }
-
-    public String getTelefono() {
-        return telefono;
-    }
-
-    public void setTelefono(String telefono) {
-        this.telefono = telefono;
     }
 
     public Long getUsuarioId() {

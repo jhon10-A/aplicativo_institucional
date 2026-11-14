@@ -8,6 +8,7 @@ import java.util.Optional;
 
 @Repository
 public interface DocenteRepository extends JpaRepository<Docente, Long> {
-    Optional<Docente> findByDni(String dni);
-    boolean existsByDni(String dni);
+    Optional<Docente> findByDocumentoIdentidad(String documentoIdentidad);
+    boolean existsByDocumentoIdentidad(String documentoIdentidad);
+    boolean existsByUsuarioId(Long usuarioId);
 }

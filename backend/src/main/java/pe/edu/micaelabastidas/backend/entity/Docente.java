@@ -16,16 +16,15 @@ public class Docente {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 8)
-    private String dni;
+    @OneToOne
+    @JoinColumn(name = "usuario_id", nullable = false, unique = true)
+    private Usuario usuario;
+
+    @Column(name = "documento_identidad", nullable = false, unique = true)
+    private String documentoIdentidad;
 
     @Column(nullable = false)
     private String especialidad;
-
-    private String telefono;
-
-    @Column(nullable = false)
-    private boolean activo = true;
 
     public Long getId() {
         return id;
@@ -35,12 +34,20 @@ public class Docente {
         this.id = id;
     }
 
-    public String getDni() {
-        return dni;
+    public Usuario getUsuario() {
+        return usuario;
     }
 
-    public void setDni(String dni) {
-        this.dni = dni;
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
+    }
+
+    public String getDocumentoIdentidad() {
+        return documentoIdentidad;
+    }
+
+    public void setDocumentoIdentidad(String documentoIdentidad) {
+        this.documentoIdentidad = documentoIdentidad;
     }
 
     public String getEspecialidad() {
@@ -49,21 +56,5 @@ public class Docente {
 
     public void setEspecialidad(String especialidad) {
         this.especialidad = especialidad;
-    }
-
-    public String getTelefono() {
-        return telefono;
-    }
-
-    public void setTelefono(String telefono) {
-        this.telefono = telefono;
-    }
-
-    public boolean isActivo() {
-        return activo;
-    }
-
-    public void setActivo(boolean activo) {
-        this.activo = activo;
     }
 }

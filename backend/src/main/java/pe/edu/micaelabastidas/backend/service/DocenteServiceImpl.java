@@ -5,7 +5,9 @@ import org.springframework.stereotype.Service;
 import pe.edu.micaelabastidas.backend.dto.DocenteRequestDto;
 import pe.edu.micaelabastidas.backend.dto.DocenteResponseDto;
 import pe.edu.micaelabastidas.backend.entity.Docente;
+import pe.edu.micaelabastidas.backend.entity.Usuario;
 import pe.edu.micaelabastidas.backend.repository.DocenteRepository;
+import pe.edu.micaelabastidas.backend.repository.UsuarioRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -15,6 +17,9 @@ public class DocenteServiceImpl implements DocenteService {
 
     @Autowired
     private DocenteRepository docenteRepository;
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
     @Override
     public List<DocenteResponseDto> obtenerTodos() {
@@ -32,12 +37,21 @@ public class DocenteServiceImpl implements DocenteService {
 
     @Override
     public DocenteResponseDto crear(DocenteRequestDto dto) {
+        if (docenteRepository.existsByDocumentoIdentidad(dto.getDocumentoIdentidad())) {
+            throw new RuntimeException("Ya existe un docente con el documento de identidad: " + dto.getDocumentoIdentidad());
+        }
+        if (docenteRepository.existsByUsuarioId(dto.getUsuarioId())) {
+            throw new RuntimeException("El usuario ya tiene un perfil docente asignado");
+        }
+
+        Usuario usuario = usuarioRepository.findById(dto.getUsuarioId())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + dto.getUsuarioId()));
+
         Docente docente = new Docente();
-        docente.setDni(dto.getDni());
+        docente.setUsuario(usuario);
+        docente.setDocumentoIdentidad(dto.getDocumentoIdentidad());
         docente.setEspecialidad(dto.getEspecialidad());
-        docente.setTelefono(dto.getTelefono());
-        docente.setActivo(true);
-        
+
         Docente guardado = docenteRepository.save(docente);
         return convertirADto(guardado);
     }
@@ -46,10 +60,13 @@ public class DocenteServiceImpl implements DocenteService {
     public DocenteResponseDto actualizar(Long id, DocenteRequestDto dto) {
         Docente docente = docenteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Docente no encontrado con ID: " + id));
-        
-        docente.setDni(dto.getDni());
+
+        Usuario usuario = usuarioRepository.findById(dto.getUsuarioId())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + dto.getUsuarioId()));
+
+        docente.setUsuario(usuario);
+        docente.setDocumentoIdentidad(dto.getDocumentoIdentidad());
         docente.setEspecialidad(dto.getEspecialidad());
-        docente.setTelefono(dto.getTelefono());
 
         Docente actualizado = docenteRepository.save(docente);
         return convertirADto(actualizado);
@@ -59,17 +76,29 @@ public class DocenteServiceImpl implements DocenteService {
     public void cambiarEstado(Long id, boolean activo) {
         Docente docente = docenteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Docente no encontrado con ID: " + id));
-        docente.setActivo(activo);
-        docenteRepository.save(docente);
+
+        Usuario usuario = docente.getUsuario();
+        if (usuario == null) {
+            throw new RuntimeException("El docente no tiene un usuario asociado");
+        }
+
+        usuario.setActivo(activo);
+        usuarioRepository.save(usuario);
     }
 
     private DocenteResponseDto convertirADto(Docente docente) {
         DocenteResponseDto dto = new DocenteResponseDto();
         dto.setId(docente.getId());
-        dto.setDni(docente.getDni());
+        dto.setDocumentoIdentidad(docente.getDocumentoIdentidad());
         dto.setEspecialidad(docente.getEspecialidad());
-        dto.setTelefono(docente.getTelefono());
-        dto.setActivo(docente.isActivo());
+
+        if (docente.getUsuario() != null) {
+            dto.setUsuarioId(docente.getUsuario().getId());
+            dto.setNombreUsuario(docente.getUsuario().getNombreUsuario());
+            dto.setNombres(docente.getUsuario().getNombres());
+            dto.setApellidos(docente.getUsuario().getApellidos());
+            dto.setActivo(docente.getUsuario().isActivo());
+        }
         return dto;
     }
 }
