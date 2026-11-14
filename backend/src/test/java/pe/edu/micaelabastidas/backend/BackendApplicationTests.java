@@ -231,8 +231,16 @@ class BackendApplicationTests {
         mvc.perform(get("/api/estudiante/perfil").header("Origin", "http://localhost:63170"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:63170"));
-        mvc.perform(options("/api/estudiante/perfil").header("Origin", "http://localhost:63170")
-                        .header("Access-Control-Request-Method", "DELETE"))
+        for (String method : new String[] {"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"}) {
+            mvc.perform(options("/api/docentes/1").header("Origin", "http://localhost:63170")
+                            .header("Access-Control-Request-Method", method)
+                            .header("Access-Control-Request-Headers", "authorization,content-type"))
+                    .andExpect(status().isOk());
+        }
+        mvc.perform(delete("/api/docentes/1").header("Origin", "http://localhost:63170"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(options("/api/docentes/1").header("Origin", "http://localhost:63170")
+                        .header("Access-Control-Request-Method", "TRACE"))
                 .andExpect(status().isForbidden());
         mvc.perform(options("/api/auth/login").header("Origin", "http://192.168.1.10:63170")
                         .header("Access-Control-Request-Method", "POST"))

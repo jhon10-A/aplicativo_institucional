@@ -27,10 +27,30 @@ class SecurityConfigTests {
                 "http://example.invalid:63170", "http://192.168.1.10:63170", "https://localhost:63170"}) {
             assertNull(cors.checkOrigin(invalidOrigin));
         }
-        assertEquals(java.util.List.of("GET", "POST", "OPTIONS"), cors.getAllowedMethods());
+        assertEquals(java.util.List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"), cors.getAllowedMethods());
         assertEquals(java.util.List.of("Content-Type", "Authorization", "Accept"), cors.getAllowedHeaders());
         assertFalse(cors.getAllowCredentials());
         for (String invalid : new String[] {"*", "https://example.invalid", "http://localhost:5173/", "http://user@localhost:5173"}) {
+            assertThrows(IllegalArgumentException.class, () -> config.corsConfigurationSource(invalid));
+        }
+    }
+
+    @Test
+    void lanCorsAllowsOnlyTheConfiguredPrivateOriginAndPort() {
+        var request = new org.springframework.mock.web.MockHttpServletRequest("OPTIONS", "/api/docentes");
+        for (String origin : new String[] {"http://192.168.50.20:5173", "http://10.20.30.40:5173",
+                "http://172.16.20.30:5173", "http://172.31.20.30:5173"}) {
+            var cors = config.corsConfigurationSource(origin).getCorsConfiguration(request);
+            assertEquals(origin, cors.checkOrigin(origin));
+            assertNull(cors.checkOrigin(origin.replace(":5173", ":5174")));
+            assertNull(cors.checkOrigin("http://192.168.50.21:5173"));
+            assertNull(cors.checkOrigin("http://example.invalid:5173"));
+            assertNull(cors.checkOrigin("null"));
+        }
+        for (String invalid : new String[] {"http://10.evil.invalid:5173", "http://192.168.evil.invalid:5173",
+                "http://192.168.999.1:5173", "http://172.15.20.30:5173", "http://172.32.20.30:5173",
+                "http://8.8.8.8:5173", "http://localhost:65536", "http://localhost:0",
+                "http://192.168.50.20:5173/path", "http://localhost:5173?x=1", "http://localhost:5173#x"}) {
             assertThrows(IllegalArgumentException.class, () -> config.corsConfigurationSource(invalid));
         }
     }
