@@ -90,7 +90,8 @@ void main() {
       pending.complete(http.Response(jsonEncode(responseFixture()), 200));
       await tester.pumpAndSettle();
       expect(find.text('Nombre de prueba Apellido de prueba'), findsOneWidget);
-      expect(find.text('Turno: No disponible'), findsOneWidget);
+      expect(find.textContaining('Horario:'), findsOneWidget);
+      expect(find.textContaining('Turno:'), findsNothing);
       expect(find.text('isolated-test-token'), findsNothing);
       await tester.tap(find.text('Cerrar sesión'));
       await tester.pumpAndSettle();
