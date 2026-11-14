@@ -27,9 +27,11 @@ class StudentTopNavigation extends StatelessWidget {
     super.key,
     required this.selected,
     required this.onSelect,
+    this.compact = false,
   });
   final StudentSection selected;
   final ValueChanged<StudentSection> onSelect;
+  final bool compact;
   @override
   Widget build(BuildContext context) => Material(
     color: Colors.white,
@@ -38,7 +40,10 @@ class StudentTopNavigation extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 752),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 12 : 16,
+            vertical: compact ? 0 : 3,
+          ),
           child: Row(
             children: [
               Flexible(
@@ -46,6 +51,10 @@ class StudentTopNavigation extends StatelessWidget {
                   onPressed: () => onSelect(StudentSection.inicio),
                   icon: const Icon(Icons.home_outlined, size: 19),
                   label: const Text('Inicio', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    minimumSize: Size(0, compact ? 36 : 40),
+                    padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12),
+                  ),
                 ),
               ),
               const Spacer(),
@@ -67,9 +76,12 @@ class StudentTopNavigation extends StatelessWidget {
                         ),
                       ),
                   ],
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    child: Row(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: compact ? 8 : 14,
+                    ),
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Flexible(

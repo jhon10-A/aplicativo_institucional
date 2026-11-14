@@ -79,7 +79,8 @@ void main() {
         access.key == 'Estudiante' ? findsNothing : findsOneWidget,
       );
       if (access.key == 'Estudiante') {
-        expect(find.text('Turno: No disponible'), findsOneWidget);
+        expect(find.textContaining('Horario:'), findsOneWidget);
+        expect(find.textContaining('Turno:'), findsNothing);
       }
       await tester.tap(find.text('Cerrar sesión'));
       await tester.pumpAndSettle();

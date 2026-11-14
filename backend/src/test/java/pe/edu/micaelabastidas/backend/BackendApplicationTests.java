@@ -211,37 +211,45 @@ class BackendApplicationTests {
     }
 
     @Test
-    void corsAllowsOnlyConfiguredLocalOrigin() throws Exception {
-        mvc.perform(options("/api/auth/login").header("Origin", "http://localhost:5173")
+    void corsAllowsVariableLoopbackOriginsAndRejectsOtherOrigins() throws Exception {
+        mvc.perform(options("/api/auth/login").header("Origin", "http://localhost:63170")
                         .header("Access-Control-Request-Method", "POST")
                         .header("Access-Control-Request-Headers", "content-type"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
-        mvc.perform(options("/api/estudiante/perfil").header("Origin", "http://localhost:5173")
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:63170"));
+        mvc.perform(options("/api/estudiante/perfil").header("Origin", "http://127.0.0.1:63170")
                         .header("Access-Control-Request-Method", "GET")
                         .header("Access-Control-Request-Headers", "authorization,content-type"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"))
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://127.0.0.1:63170"))
                 .andExpect(header().string("Access-Control-Allow-Headers", org.hamcrest.Matchers.containsString("authorization")))
                 .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"));
-        mvc.perform(options("/api/estudiante/matriculas/1/tareas/1/entrega").header("Origin", "http://localhost:5173")
+        mvc.perform(options("/api/estudiante/matriculas/1/tareas/1/entrega").header("Origin", "http://localhost:63170")
                         .header("Access-Control-Request-Method", "POST")
                         .header("Access-Control-Request-Headers", "authorization,content-type"))
                 .andExpect(status().isOk());
-        mvc.perform(get("/api/estudiante/perfil").header("Origin", "http://localhost:5173"))
+        mvc.perform(get("/api/estudiante/perfil").header("Origin", "http://localhost:63170"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
-        mvc.perform(options("/api/estudiante/perfil").header("Origin", "http://localhost:5173")
-                        .header("Access-Control-Request-Method", "DELETE"))
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:63170"));
+        for (String method : new String[] {"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"}) {
+            mvc.perform(options("/api/docentes/1").header("Origin", "http://localhost:63170")
+                            .header("Access-Control-Request-Method", method)
+                            .header("Access-Control-Request-Headers", "authorization,content-type"))
+                    .andExpect(status().isOk());
+        }
+        mvc.perform(delete("/api/docentes/1").header("Origin", "http://localhost:63170"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(options("/api/docentes/1").header("Origin", "http://localhost:63170")
+                        .header("Access-Control-Request-Method", "TRACE"))
                 .andExpect(status().isForbidden());
-        mvc.perform(options("/api/auth/login").header("Origin", "http://localhost:5174")
+        mvc.perform(options("/api/auth/login").header("Origin", "http://192.168.1.10:63170")
                         .header("Access-Control-Request-Method", "POST"))
                 .andExpect(status().isForbidden())
                 .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
-        mvc.perform(post("/api/auth/login").header("Origin", "http://localhost:5173")
+        mvc.perform(post("/api/auth/login").header("Origin", "http://127.0.0.1:63170")
                         .contentType("application/json").content(body("cuenta-aislada", "wrong-password")))
                 .andExpect(status().isUnauthorized())
-                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://127.0.0.1:63170"));
     }
     @TestConfiguration
     static class ProbeConfiguration {

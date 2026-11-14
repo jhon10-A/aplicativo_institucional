@@ -175,9 +175,38 @@ Remove-Item Env:APP_DEV_SEED_ENABLED, Env:DEV_ACCOUNT_USERNAME, Env:DEV_ACCOUNT_
 
 Mantener la clave JWT configurada; no activar este inicializador en producción. No existe registro público ni una API para elegir roles.
 
+## Cuenta Docente de prueba (solo desarrollo)
+
+El seeder `DevTeacherAccountInitializer` es independiente del seeder de Estudiante y está desactivado por defecto (`app.dev.teacher-seed-enabled=false`). Solo se activa con el perfil `dev` y `APP_DEV_TEACHER_SEED_ENABLED=true`. No crea asignaciones, matrículas ni otros datos académicos.
+
+Desde una terminal dedicada en `backend/`, después de configurar las credenciales locales de MySQL y `JWT_SECRET_BASE64`, solicitar la contraseña sin mostrarla en pantalla y arrancar:
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE = 'dev'
+$env:APP_DEV_TEACHER_SEED_ENABLED = 'true'
+$env:DEV_TEACHER_PASSWORD = [System.Net.NetworkCredential]::new(
+    '',
+    (Read-Host 'Contraseña de prueba Docente' -AsSecureString)
+).Password
+.\mvnw.cmd spring-boot:run
+```
+
+La contraseña debe tener al menos 12 caracteres y un máximo de 72 bytes UTF-8. El seeder crea `docente01` activo, con el rol `DOCENTE`, hash BCrypt, documento sintético `DOCENTE-TEST-0001` y especialidad `Matemática`; vincula el perfil `docente` al usuario creado. El rol `DOCENTE` debe existir previamente en la base.
+
+Si `docente01` ya existe con exactamente el estado, rol y perfil de esta cuenta, el seeder no hace nada. Si el usuario existe con datos diferentes, o el documento sintético ya está ocupado, falla sin modificar ni crear registros. Las restricciones únicas de la base también impiden duplicados concurrentes. El valor de contraseña vive solo en la variable de entorno del proceso; no se guarda en el código, el README ni Git.
+
+Después de confirmar el arranque, detener el backend con `Ctrl+C`, retirar las variables y arrancarlo normalmente; así no se vuelve a activar el seeder:
+
+```powershell
+Remove-Item Env:DEV_TEACHER_PASSWORD, Env:APP_DEV_TEACHER_SEED_ENABLED, Env:SPRING_PROFILES_ACTIVE -ErrorAction SilentlyContinue
+.\mvnw.cmd spring-boot:run
+```
+
+En Flutter, seleccionar **Soy docente** e iniciar sesión con `docente01` y la contraseña que se eligió localmente. La cuenta y el perfil no crean cursos ni asignaciones. El panel existente puede mostrar asignaciones de demostración si el backend devuelve una lista vacía o falla; esos datos son un respaldo de interfaz y no se insertan en MySQL.
+
 ## Probar con Postman
 
-1. Arrancar el backend con la clave configurada. Si se desea una cuenta de prueba, ejecutar previamente la activación manual anterior.
+1. Arrancar el backend con la clave configurada. Si se desea una cuenta de prueba, ejecutar previamente la activación manual correspondiente a su rol.
 2. Enviar `GET http://localhost:8080/api/estado` sin autorización: debe devolver 200.
 3. Crear `POST http://localhost:8080/api/auth/login`, seleccionar Body → raw → JSON y `Content-Type: application/json`. Usar las claves `nombreUsuario` y `password`, con los valores de la cuenta elegida. No guardar contraseñas en colecciones compartidas ni habilitar registros de cuerpos de solicitudes.
 4. Un login válido devuelve 200, `accessToken`, `tokenType` (`Bearer`), `expiresAt` y `usuario` con `id`, `nombreUsuario`, `nombres`, `apellidos`, `roles`. La respuesta usa `Cache-Control: no-store`. El JWT se devuelve únicamente como credencial en el login exitoso; no contiene contraseña ni hash.
@@ -195,7 +224,7 @@ La seguridad es sin sesión y usa el encabezado `Authorization: Bearer`; no usa 
 
 Las pruebas cargan el contexto con H2 en memoria, `ddl-auto=none`, inicialización SQL desactivada y repositorios sustituidos por mocks. Generan una clave efímera en memoria; no dependen de la clave del entorno ni consultan o escriben en MySQL local. Se comprueba el endpoint protegido real `/api/auth/me`; la ruta auxiliar `/api/test/protected` solo existe en tests.
 
-Se comprueban login correcto y DTO seguro, acceso público/protegido, credenciales incorrectas, usuario inexistente/inactivo, datos inválidos, JWT malformado/vencido/firma alterada/emisor incorrecto y comportamiento del inicializador con mocks. Estas pruebas no verifican la contraseña o los registros existentes en el servidor local ni reemplazan una comprobación manual con Postman. No se ejecutó un login contra el servidor local durante esta implementación.
+Se comprueban login correcto y DTO seguro, acceso público/protegido, credenciales incorrectas, usuario inexistente/inactivo, datos inválidos, JWT malformado/vencido/firma alterada/emisor incorrecto y comportamiento de ambos inicializadores con mocks. El seeder Docente también se valida con pruebas de BCrypt, relación de perfil, colisiones, repetición sin escritura y requisitos de activación. Estas pruebas no verifican la contraseña o los registros existentes en el servidor local ni reemplazan una comprobación manual con Postman.
 
 `target/`, `.env`, archivos locales y formatos de claves están excluidos por `.gitignore`. Nunca habilitar logging de contraseñas, hashes, cuerpos de login o encabezados Authorization.
 

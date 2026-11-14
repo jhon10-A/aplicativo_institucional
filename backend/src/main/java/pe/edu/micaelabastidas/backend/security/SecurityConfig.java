@@ -106,24 +106,36 @@ public class SecurityConfig {
             String host = uri.getHost();
             boolean isLocalHost = "localhost".equals(host)
                     || "127.0.0.1".equals(host)
-                    || (host != null && (host.startsWith("10.") || host.startsWith("192.168.")));
+                    || isPrivateIpv4(host);
             if (!"http".equals(uri.getScheme()) ||
                     !isLocalHost ||
-                    uri.getPort() < 1 || uri.getUserInfo() != null ||
+                    uri.getPort() < 1 || uri.getPort() > 65535 || uri.getUserInfo() != null ||
                     uri.getRawQuery() != null || uri.getRawFragment() != null ||
                     (uri.getPath() != null && !uri.getPath().isEmpty())) {
                 throw new IllegalArgumentException("app.cors.allowed-origin requiere un origen HTTP local explícito con puerto");
             }
-            cors.setAllowedOrigins(List.of(origin, "http://localhost:5173", "http://10.127.160.86:5173"));
-        } else {
-            cors.setAllowedOrigins(List.of("http://localhost:5173", "http://10.127.160.86:5173"));
+            cors.setAllowedOriginPatterns(List.of("http://localhost:[*]", "http://127.0.0.1:[*]"));
+            cors.setAllowedOrigins(List.of(origin));
         }
-        cors.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        cors.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         cors.setAllowedHeaders(List.of("Content-Type", "Authorization", "Accept"));
         cors.setAllowCredentials(false);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cors);
         return source;
+    }
+
+    private static boolean isPrivateIpv4(String host) {
+        if (host == null || !host.matches("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+")) return false;
+        String[] parts = host.split("\\.");
+        int[] octets = new int[4];
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].length() > 3 || (parts[i].length() > 1 && parts[i].startsWith("0"))) return false;
+            octets[i] = Integer.parseInt(parts[i]);
+            if (octets[i] > 255) return false;
+        }
+        return octets[0] == 10 || (octets[0] == 192 && octets[1] == 168)
+                || (octets[0] == 172 && octets[1] >= 16 && octets[1] <= 31);
     }
 
     private static void unauthorized(HttpServletResponse response) throws IOException {
