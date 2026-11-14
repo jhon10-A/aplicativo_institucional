@@ -103,16 +103,22 @@ public class SecurityConfig {
         CorsConfiguration cors = new CorsConfiguration();
         if (!origin.isBlank()) {
             URI uri = URI.create(origin);
+            String host = uri.getHost();
+            boolean isLocalHost = "localhost".equals(host)
+                    || "127.0.0.1".equals(host)
+                    || (host != null && (host.startsWith("10.") || host.startsWith("192.168.")));
             if (!"http".equals(uri.getScheme()) ||
-                    !("localhost".equals(uri.getHost()) || "127.0.0.1".equals(uri.getHost())) ||
+                    !isLocalHost ||
                     uri.getPort() < 1 || uri.getUserInfo() != null ||
                     uri.getRawQuery() != null || uri.getRawFragment() != null ||
                     (uri.getPath() != null && !uri.getPath().isEmpty())) {
                 throw new IllegalArgumentException("app.cors.allowed-origin requiere un origen HTTP local explícito con puerto");
             }
-            cors.setAllowedOrigins(List.of(origin));
+            cors.setAllowedOrigins(List.of(origin, "http://localhost:5173", "http://10.127.160.86:5173"));
+        } else {
+            cors.setAllowedOrigins(List.of("http://localhost:5173", "http://10.127.160.86:5173"));
         }
-        cors.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        cors.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         cors.setAllowedHeaders(List.of("Content-Type", "Authorization", "Accept"));
         cors.setAllowCredentials(false);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

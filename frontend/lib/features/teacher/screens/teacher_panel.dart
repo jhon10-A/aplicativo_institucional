@@ -348,48 +348,56 @@ class _TeacherPanelState extends State<TeacherPanel> {
   }
 
   Widget _buildTopNavbar() {
+    final isCompact = MediaQuery.of(context).size.width < 560;
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: _border)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 12 : 24, vertical: 12),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1180),
           child: Row(
             children: [
-              InkWell(
-                onTap: () => setState(() => _activeView = 0),
-                child: Row(
-                  children: [
-                    Image.asset(
-                      'assets/institutional/escudo.png',
-                      height: 42,
-                      errorBuilder: (_, _, _) => const CircleAvatar(
-                        backgroundColor: _navy,
-                        child: Text('MB', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _activeView = 0),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'assets/institutional/escudo.png',
+                        height: 40,
+                        errorBuilder: (_, _, _) => const CircleAvatar(
+                          backgroundColor: _navy,
+                          child: Text('MB', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'I.E. Micaela Bastidas\nPuyucahua',
-                          style: TextStyle(color: _navy, fontWeight: FontWeight.w800, fontSize: 13, height: 1.15),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'I.E. Micaela Bastidas\nPuyucahua',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: _navy, fontWeight: FontWeight.w800, fontSize: 13, height: 1.15),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Tamburco · Abancay · Apurímac',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: Colors.black54, fontSize: 10.5),
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Tamburco · Abancay · Apurímac',
-                          style: TextStyle(color: Colors.black54, fontSize: 10.5),
-                        ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const Spacer(),
               if (MediaQuery.of(context).size.width > 920) ...[
                 _navLink('Inicio', () => setState(() => _activeView = 0), active: _activeView == 0),
                 _navLink('Mis Cursos', () => setState(() => _activeView = 1), active: _activeView == 1),
@@ -403,18 +411,30 @@ class _TeacherPanelState extends State<TeacherPanel> {
                 onPressed: _reload,
                 icon: const Icon(Icons.refresh, color: _navy),
               ),
-              const SizedBox(width: 6),
-              FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: _wine,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              const SizedBox(width: 4),
+              if (isCompact)
+                IconButton.filled(
+                  style: IconButton.styleFrom(
+                    backgroundColor: _wine,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  tooltip: 'Cerrar sesión',
+                  onPressed: widget.onLogout,
+                  icon: const Icon(Icons.logout, size: 18),
+                )
+              else
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _wine,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: widget.onLogout,
+                  icon: const Icon(Icons.logout, size: 18),
+                  label: const Text('Cerrar sesión', style: TextStyle(fontWeight: FontWeight.w600)),
                 ),
-                onPressed: widget.onLogout,
-                icon: const Icon(Icons.logout, size: 18),
-                label: const Text('Cerrar sesión', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
             ],
           ),
         ),
@@ -1411,13 +1431,11 @@ class _TeacherCoursesSection extends StatelessWidget {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(18),
-                  child: Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    runSpacing: 12,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
-                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           CircleAvatar(
                             radius: 24,
@@ -1425,29 +1443,40 @@ class _TeacherCoursesSection extends StatelessWidget {
                             child: Icon(Icons.class_outlined, color: palette[i % palette.length]),
                           ),
                           const SizedBox(width: 14),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                assignments[i].cursoNombre,
-                                style: const TextStyle(color: _navy, fontSize: 16, fontWeight: FontWeight.w800),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${assignments[i].aulaLabel} · Periodo ${assignments[i].periodoNombre}',
-                                style: const TextStyle(color: Colors.black54, fontSize: 13),
-                              ),
-                              if (assignments[i].cursoDescripcion != null && assignments[i].cursoDescripcion!.isNotEmpty)
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Text(
-                                  assignments[i].cursoDescripcion!,
-                                  style: const TextStyle(color: Colors.black45, fontSize: 12),
+                                  assignments[i].cursoNombre,
+                                  style: const TextStyle(color: _navy, fontSize: 16, fontWeight: FontWeight.w800),
                                 ),
-                            ],
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${assignments[i].aulaLabel} · Periodo ${assignments[i].periodoNombre}',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.black54, fontSize: 13),
+                                ),
+                                if (assignments[i].cursoDescripcion != null &&
+                                    assignments[i].cursoDescripcion!.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    assignments[i].cursoDescripcion!,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: Colors.black45, fontSize: 12),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 14),
                       Wrap(
                         spacing: 8,
+                        runSpacing: 8,
                         children: [
                           OutlinedButton.icon(
                             onPressed: () => _showStudents(context, assignments[i]),
@@ -1476,6 +1505,7 @@ class _TeacherCoursesSection extends StatelessWidget {
       },
     );
   }
+
 }
 
 class _TeacherStudentsSection extends StatefulWidget {
@@ -1585,6 +1615,7 @@ class _TeacherStudentsSectionState extends State<_TeacherStudentsSection> {
                 builder: (context, constraints) {
                   final wide = constraints.maxWidth >= 700;
                   final dropdown = DropdownButtonFormField<TeacherAssignment>(
+                    isExpanded: true,
                     initialValue: _selected,
                     decoration: const InputDecoration(
                       labelText: 'Filtrar por Curso y Sección',
@@ -1592,7 +1623,7 @@ class _TeacherStudentsSectionState extends State<_TeacherStudentsSection> {
                       isDense: true,
                     ),
                     items: assignments
-                        .map((a) => DropdownMenuItem(value: a, child: Text('${a.cursoNombre} · ${a.gradoNombre} "${a.seccionNombre}"')))
+                        .map((a) => DropdownMenuItem(value: a, child: Text('${a.cursoNombre} · ${a.gradoNombre} "${a.seccionNombre}",overflow: TextOverflow.ellipsis,')))
                         .toList(),
                     onChanged: (val) {
                       if (val != null) _pickAssignment(val);
@@ -1868,6 +1899,7 @@ class _TeacherAttendanceSectionState extends State<_TeacherAttendanceSection> {
                       SizedBox(
                         width: 340,
                         child: DropdownButtonFormField<TeacherAssignment>(
+                          isExpanded: true,
                           initialValue: _selected,
                           decoration: const InputDecoration(
                             labelText: 'Curso y Sección',
@@ -1875,7 +1907,7 @@ class _TeacherAttendanceSectionState extends State<_TeacherAttendanceSection> {
                             isDense: true,
                           ),
                           items: assignments
-                              .map((a) => DropdownMenuItem(value: a, child: Text('${a.cursoNombre} · ${a.gradoNombre} "${a.seccionNombre}"')))
+                              .map((a) => DropdownMenuItem(value: a, child: Text('${a.cursoNombre} · ${a.gradoNombre} "${a.seccionNombre}",overflow: TextOverflow.ellipsis,')))
                               .toList(),
                           onChanged: (val) {
                             if (val != null) _pickAssignment(val);
@@ -2166,6 +2198,7 @@ class _TeacherGradesSectionState extends State<_TeacherGradesSection> {
                       SizedBox(
                         width: 280,
                         child: DropdownButtonFormField<TeacherAssignment>(
+                           isExpanded: true,
                           initialValue: _selected,
                           decoration: const InputDecoration(
                             labelText: 'Curso y Sección',
@@ -2173,7 +2206,7 @@ class _TeacherGradesSectionState extends State<_TeacherGradesSection> {
                             isDense: true,
                           ),
                           items: assignments
-                              .map((a) => DropdownMenuItem(value: a, child: Text('${a.cursoNombre} · ${a.gradoNombre} "${a.seccionNombre}"')))
+                              .map((a) => DropdownMenuItem(value: a, child: Text('${a.cursoNombre} · ${a.gradoNombre} "${a.seccionNombre}",overflow: TextOverflow.ellipsis,')))
                               .toList(),
                           onChanged: (val) {
                             if (val != null) _pickAssignment(val);
@@ -2183,6 +2216,7 @@ class _TeacherGradesSectionState extends State<_TeacherGradesSection> {
                       SizedBox(
                         width: 170,
                         child: DropdownButtonFormField<String>(
+                           isExpanded: true,
                           initialValue: _etapa,
                           decoration: const InputDecoration(
                             labelText: 'Periodo / Etapa',
