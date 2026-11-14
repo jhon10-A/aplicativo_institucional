@@ -10,6 +10,7 @@ import 'package:aplicativo_institucional/features/student/screens/student_notice
 import 'package:aplicativo_institucional/features/student/student_api.dart';
 import 'package:aplicativo_institucional/features/student/widgets/student_overview.dart';
 import 'package:aplicativo_institucional/features/student/widgets/student_home.dart';
+import 'package:aplicativo_institucional/features/student/widgets/student_presentation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
@@ -106,7 +107,7 @@ void main() {
     expect(find.text('Usuario: prueba'), findsNothing);
     expect(find.textContaining('DNI:'), findsOneWidget);
     expect(find.text('Roles: ESTUDIANTE'), findsNothing);
-    expect(find.text('Turno: No disponible'), findsOneWidget);
+    expect(find.text('Horario: Cargando…'), findsOneWidget);
     expect(find.text('isolated-test-token'), findsNothing);
     for (final section in StudentSection.values.where(
       (s) => s != StudentSection.inicio && s != StudentSection.progreso,
@@ -123,7 +124,7 @@ void main() {
       await tester.ensureVisible(find.text('Volver al inicio del panel'));
       await tester.tap(find.text('Volver al inicio del panel'));
       await tester.pumpAndSettle();
-      expect(find.text('Nombre de prueba Apellido de prueba'), findsOneWidget);
+      expect(find.text('Primera Persona'), findsOneWidget);
     }
     await tester.tap(find.text('Cerrar sesión'));
     expect(loggedOut, isTrue);
@@ -200,8 +201,72 @@ void main() {
       await tester.ensureVisible(find.text('Volver al inicio del panel'));
       await tester.tap(find.text('Volver al inicio del panel'));
       await tester.pumpAndSettle();
-      expect(find.text('Nombre de prueba Apellido de prueba'), findsOneWidget);
+      expect(find.text('Primera Persona'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+  }
+
+  for (final textScale in [1.0, 1.5]) {
+    testWidgets(
+      'teléfono Android conserva accesos en una fila con escala $textScale',
+      (tester) async {
+        tester.view.physicalSize = const Size(392, 850);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(platform: TargetPlatform.android),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: TextScaler.linear(textScale)),
+              child: child!,
+            ),
+            home: StudentPanel(
+              session: Session.fromJson(responseFixture()),
+              onLogout: () {},
+              studentApiFactory: client,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final shortcutRects = [
+          for (final section in [
+            StudentSection.cursos,
+            StudentSection.tareas,
+            StudentSection.calificaciones,
+            StudentSection.progreso,
+          ])
+            tester.getRect(
+              find.byKey(ValueKey('student-shortcut-${section.name}')),
+            ),
+        ];
+        for (final rect in shortcutRects.skip(1)) {
+          expect(rect.top, closeTo(shortcutRects.first.top, 1));
+        }
+        for (final section in [
+          StudentSection.inicio,
+          StudentSection.cursos,
+          StudentSection.tareas,
+          StudentSection.comunicados,
+          StudentSection.perfil,
+        ]) {
+          expect(
+            find.byKey(ValueKey('student-bottom-${section.name}')),
+            findsOneWidget,
+          );
+        }
+        if (textScale <= 1.2) {
+          final previewCards = find.byType(StudentPreviewCard);
+          expect(previewCards, findsNWidgets(4));
+          final courses = tester.getRect(previewCards.at(0));
+          final tasks = tester.getRect(previewCards.at(1));
+          expect(tasks.top, greaterThanOrEqualTo(courses.bottom));
+          expect(courses.width, closeTo(tasks.width, 1));
+        }
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 }

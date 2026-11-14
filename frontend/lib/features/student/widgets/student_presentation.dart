@@ -55,35 +55,56 @@ class StudentPreviewCard extends StatelessWidget {
     builder: (context, box) {
       final compact = box.maxWidth < 480;
       return Card(
+        color: Colors.white,
+        surfaceTintColor: Colors.transparent,
         child: Padding(
-          padding: EdgeInsets.all(compact ? 10 : 16),
+          padding: EdgeInsets.all(compact ? 8 : 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
                 children: [
-                  Icon(icon, color: studentNavy, size: compact ? 20 : 24),
-                  SizedBox(width: compact ? 5 : 10),
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: studentWine.withValues(alpha: .06),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: studentNavy,
+                      size: compact ? 18 : 22,
+                    ),
+                  ),
+                  SizedBox(width: compact ? 6 : 8),
                   Expanded(
                     child: Text(
                       title,
                       style: TextStyle(
-                        fontSize: compact ? 13 : 17,
+                        fontSize: compact ? 14 : 16,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: compact ? 4 : 10,
-                      ),
-                      minimumSize: const Size(40, 40),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: compact ? 80 : double.infinity,
                     ),
-                    onPressed: onOpen,
-                    child: Text(
-                      actionLabel,
-                      style: TextStyle(fontSize: compact ? 10 : 12),
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: compact ? 4 : 10,
+                        ),
+                        minimumSize: const Size(40, 40),
+                      ),
+                      onPressed: onOpen,
+                      child: Text(
+                        actionLabel,
+                        maxLines: compact ? 2 : 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: compact ? 11 : 12),
+                      ),
                     ),
                   ),
                 ],
@@ -108,8 +129,8 @@ class StudentHeader extends StatelessWidget {
   final VoidCallback onLogout;
   Widget get emblem => Image.asset(
     'assets/student/escudo.png',
-    width: compact ? 40 : 56,
-    height: compact ? 52 : 68,
+    width: compact ? 36 : 56,
+    height: compact ? 46 : 68,
     semanticLabel: 'Escudo de la I.E. Micaela Bastidas',
   );
   Widget logout(BuildContext context) => MediaQuery.sizeOf(context).width < 700
@@ -146,7 +167,7 @@ class StudentHeader extends StatelessWidget {
     ),
     padding: EdgeInsets.symmetric(
       horizontal: compact ? 12 : 28,
-      vertical: compact ? 10 : 18,
+      vertical: compact ? 8 : 16,
     ),
     child: Center(
       child: ConstrainedBox(
@@ -176,9 +197,9 @@ class StudentHeader extends StatelessWidget {
                       logout(context),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  location,
                   const SizedBox(height: 4),
+                  location,
+                  const SizedBox(height: 3),
                   motto,
                 ],
               )

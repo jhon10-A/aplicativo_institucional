@@ -12,7 +12,7 @@ import 'package:aplicativo_institucional/features/student/student_api.dart';
 import 'package:aplicativo_institucional/features/student/widgets/student_overview.dart';
 
 import 'auth_test.dart' show responseFixture;
-import 'student_profile_test.dart' show enrollmentFixture;
+import 'student_profile_test.dart' show enrollmentFixture, profileFixture;
 import 'student_courses_test.dart' show courseFixture;
 import 'student_notices_test.dart' show noticeFixture;
 import 'student_schedule_test.dart' show scheduleFixture;
@@ -137,6 +137,50 @@ void main() {
           .initialValue,
       2026,
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('horario compacto Android muestra cursos completos sin recorte', (
+    tester,
+  ) async {
+    const courseName =
+        'Matemática avanzada con resolución de problemas aplicados';
+    tester.view.physicalSize = const Size(392, 850);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.android),
+        home: StudentPanel(
+          session: Session.fromJson(responseFixture()),
+          onLogout: () {},
+          studentApiFactory: () => client((request) async {
+            if (request.url.path.endsWith('/perfil')) {
+              return json(profileFixture());
+            }
+            if (request.url.path.endsWith('/matriculas')) {
+              return json([enrollmentFixture('2026')]);
+            }
+            if (request.url.path.endsWith('/horario')) {
+              return json([
+                scheduleFixture(
+                  course: courseName,
+                  start: '08:00:00',
+                  end: '08:45:00',
+                ),
+              ]);
+            }
+            return json([]);
+          }),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final course = find.text(courseName);
+    expect(course, findsOneWidget);
+    expect(tester.widget<Text>(course).maxLines, isNull);
     expect(tester.takeException(), isNull);
   });
 

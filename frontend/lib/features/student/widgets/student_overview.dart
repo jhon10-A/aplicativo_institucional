@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../student_api.dart';
 import '../student_profile.dart';
 import '../student_schedule.dart';
+import '../student_home_summary.dart';
 import '../student_section.dart';
 import '../student_theme.dart';
 import 'student_presentation.dart';
@@ -19,12 +20,17 @@ class StudentOverview extends StatefulWidget {
     required this.onUnauthorized,
     this.onEnrollmentChanged,
     this.selectedEnrollmentId,
+    this.onScheduleChanged,
+    this.clock,
   });
   final StudentApi Function() apiFactory;
   final ValueChanged<StudentSection> onSelect;
   final VoidCallback onUnauthorized;
   final ValueChanged<StudentEnrollment?>? onEnrollmentChanged;
   final int? selectedEnrollmentId;
+  final void Function(int? enrollmentId, StudentHomeScheduleSummary summary)?
+  onScheduleChanged;
+  final DateTime Function()? clock;
   @override
   State<StudentOverview> createState() => _StudentOverviewState();
 }
@@ -39,11 +45,15 @@ class _StudentOverviewState extends State<StudentOverview> {
   final Map<String, List<Map<String, dynamic>>> _data = {};
   List<StudentSchedule> _schedule = [];
   final Set<String> _busy = {}, _errors = {};
+  Timer? _scheduleTicker;
   @override
   void initState() {
     super.initState();
     _api = widget.apiFactory();
     unawaited(_load());
+    _scheduleTicker = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted && _schedule.isNotEmpty) setState(() {});
+    });
   }
 
   @override
@@ -69,9 +79,26 @@ class _StudentOverviewState extends State<StudentOverview> {
 
   @override
   void dispose() {
+    _scheduleTicker?.cancel();
     ++_generation;
     _api.dispose();
     super.dispose();
+  }
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    // Hot reload preserves the existing response and the authenticated session.
+    _publishSchedule(
+      _failed || _errors.contains('horario')
+          ? const StudentHomeScheduleSummary.unavailable()
+          : _loading || _busy.contains('horario')
+          ? const StudentHomeScheduleSummary.loading()
+          : _selected == null && _enrollments.isNotEmpty
+          ? const StudentHomeScheduleSummary.selectionRequired()
+          : StudentHomeScheduleSummary.loaded(_schedule),
+      _generation,
+    );
   }
 
   void _unauthorized(Object e) {
@@ -113,8 +140,13 @@ class _StudentOverviewState extends State<StudentOverview> {
         _failed = true;
       });
       _unauthorized(e);
+      final generation = ++_generation;
+      _publishSchedule(
+        const StudentHomeScheduleSummary.unavailable(),
+        generation,
+      );
       if (mounted && !_expired) {
-        unawaited(_preview('comunicados', 'comunicados', ++_generation));
+        unawaited(_preview('comunicados', 'comunicados', generation));
       }
     }
   }
@@ -128,6 +160,14 @@ class _StudentOverviewState extends State<StudentOverview> {
       _busy.clear();
     });
     final id = _selected;
+    _publishSchedule(
+      id == null
+          ? _enrollments.isEmpty
+                ? const StudentHomeScheduleSummary.empty()
+                : const StudentHomeScheduleSummary.selectionRequired()
+          : const StudentHomeScheduleSummary.loading(),
+      generation,
+    );
     if (id != null) {
       unawaited(_preview('cursos', 'matriculas/$id/cursos', generation));
       unawaited(_preview('tareas', 'matriculas/$id/tareas', generation));
@@ -140,6 +180,14 @@ class _StudentOverviewState extends State<StudentOverview> {
         generation,
       ),
     );
+  }
+
+  void _publishSchedule(StudentHomeScheduleSummary summary, int generation) {
+    final enrollmentId = _selected;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || generation != _generation) return;
+      widget.onScheduleChanged?.call(enrollmentId, summary);
+    });
   }
 
   Future<void> _preview(String key, String path, int generation) async {
@@ -161,6 +209,10 @@ class _StudentOverviewState extends State<StudentOverview> {
           _schedule = schedule;
           _busy.remove(key);
         });
+        _publishSchedule(
+          StudentHomeScheduleSummary.loaded(schedule),
+          generation,
+        );
         return;
       }
       var rows = (response as List).cast<Map<String, dynamic>>().toList();
@@ -191,6 +243,12 @@ class _StudentOverviewState extends State<StudentOverview> {
         _busy.remove(key);
       });
       _unauthorized(e);
+      if (key == 'horario') {
+        _publishSchedule(
+          const StudentHomeScheduleSummary.unavailable(),
+          generation,
+        );
+      }
     }
   }
 
@@ -242,83 +300,170 @@ class _StudentOverviewState extends State<StudentOverview> {
       );
     }
 
-    final visible = _schedule.take(3).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const ColoredBox(
-          color: Color(0xFFF1F6FC),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Hora',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                Expanded(
-                  flex: 4,
-                  child: Text(
-                    'Curso',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Aula',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
+    final preview = studentSchedulePreview(
+      _schedule,
+      instant: widget.clock?.call() ?? DateTime.now(),
+      enrollment: _enrollments.where((m) => m.id == _selected).firstOrNull,
+    );
+    final visible = preview.sessions;
+    return LayoutBuilder(
+      builder: (context, box) {
+        final compactPhone =
+            box.maxWidth < 400 ||
+            MediaQuery.textScalerOf(context).scale(1) > 1.2;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Text(
+                preview.heading,
+                style: const TextStyle(fontSize: 11, color: studentNavy),
+              ),
             ),
-          ),
-        ),
-        for (final item in visible)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    '${item.diaCorto} ${item.horaInicio}\n${item.horaFin}',
-                    style: const TextStyle(fontSize: 11, height: 1.4),
+            if (visible.isNotEmpty)
+              ColoredBox(
+                color: const Color(0xFFF1F6FC),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    children: compactPhone
+                        ? const [
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Hora',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 5,
+                              child: Text(
+                                'Curso · aula',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ]
+                        : const [
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Hora',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 4,
+                              child: Text(
+                                'Curso',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Aula',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
                   ),
                 ),
-                Expanded(
-                  flex: 4,
-                  child: Text(
-                    item.curso,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12),
+              ),
+            for (final item in visible)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: compactPhone
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              '${item.diaCorto} ${item.horaInicio}\n${item.horaFin}',
+                              style: const TextStyle(fontSize: 11, height: 1.4),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            flex: 5,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.curso,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  'Aula: ${item.aulaDisponible ?? '—'}',
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              '${item.diaCorto} ${item.horaInicio}\n${item.horaFin}',
+                              style: const TextStyle(fontSize: 11, height: 1.4),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 4,
+                            child: Text(
+                              item.curso,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              item.aulaDisponible ?? '—',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            if (preview.remaining > 0)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  '${preview.remaining} clases más',
+                  style: const TextStyle(
+                    color: Color(0xFF617991),
+                    fontSize: 11,
                   ),
                 ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    item.aulaDisponible ?? '—',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        if (_schedule.length > visible.length)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Text(
-              '${_schedule.length - visible.length} horarios más',
-              style: const TextStyle(color: Color(0xFF617991), fontSize: 11),
-            ),
-          ),
-      ],
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -353,7 +498,10 @@ class _StudentOverviewState extends State<StudentOverview> {
         ),
       );
     }
-    final rows = _data[key] ?? [];
+    final received = _data[key] ?? [];
+    final rows = key == 'comunicados'
+        ? received.where(showStudentHomeNotice).toList()
+        : received;
     if (rows.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 24),
@@ -374,10 +522,16 @@ class _StudentOverviewState extends State<StudentOverview> {
           Color(0xFF9048D0),
           Color(0xFFE99A00),
         ];
+        final limit = key == 'cursos' ? 5 : 3;
+        final remaining = rows.length - limit;
+        final remainingKind = switch (key) {
+          'cursos' => remaining == 1 ? 'curso' : 'cursos',
+          'tareas' => remaining == 1 ? 'tarea' : 'tareas',
+          _ => remaining == 1 ? 'aviso' : 'avisos',
+        };
         return Column(
           children: [
-            for (final (index, row)
-                in rows.take(key == 'cursos' ? 5 : 3).indexed)
+            for (final (index, row) in rows.take(limit).indexed)
               Material(
                 color: index == 0 && key == 'cursos'
                     ? const Color(0xFFE0F0FF)
@@ -386,15 +540,15 @@ class _StudentOverviewState extends State<StudentOverview> {
                 child: ListTile(
                   dense: compact,
                   minLeadingWidth: 0,
-                  minVerticalPadding: 6,
+                  minVerticalPadding: 4,
                   horizontalTitleGap: compact ? 7 : 12,
                   contentPadding: EdgeInsets.symmetric(
-                    vertical: compact ? 2 : 6,
+                    vertical: compact ? 1 : 4,
                     horizontal: 5,
                   ),
                   leading: Container(
-                    width: compact ? 30 : 42,
-                    height: compact ? 36 : 46,
+                    width: compact ? 28 : 42,
+                    height: compact ? 34 : 46,
                     decoration: BoxDecoration(
                       color: key == 'cursos'
                           ? colors[index % colors.length]
@@ -404,20 +558,18 @@ class _StudentOverviewState extends State<StudentOverview> {
                     child: Icon(
                       section.icon,
                       color: key == 'cursos' ? Colors.white : studentBlue,
-                      size: compact ? 20 : 25,
+                      size: compact ? 19 : 25,
                     ),
                   ),
                   title: Text(
                     (row['nombre'] ?? row['titulo']) as String,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: studentNavy,
                       fontWeight: FontWeight.w700,
                       fontSize: tiny
                           ? 11
                           : compact
-                          ? 13
+                          ? 14
                           : 15,
                     ),
                   ),
@@ -427,19 +579,24 @@ class _StudentOverviewState extends State<StudentOverview> {
                         : key == 'tareas'
                         ? '${row['curso']} · ${_date(row['fechaLimite'])}'
                         : '${row['remitente']} · ${_date(row['publicadoEn'])}',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: tiny
-                          ? 9
-                          : compact
-                          ? 11
-                          : 12,
+                      fontSize: 12,
                       color: const Color(0xFF617991),
                     ),
                   ),
                   trailing: Icon(Icons.chevron_right, size: compact ? 14 : 20),
                   onTap: () => widget.onSelect(section),
+                ),
+              ),
+            if (remaining > 0)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 4, 5, 2),
+                  child: Text(
+                    '$remaining $remainingKind más · Ver todos',
+                    style: const TextStyle(fontSize: 12, color: studentNavy),
+                  ),
                 ),
               ),
           ],
@@ -471,7 +628,7 @@ class _StudentOverviewState extends State<StudentOverview> {
       ),
     );
     final notices = StudentPreviewCard(
-      title: 'Últimos comunicados',
+      title: 'Últimos avisos',
       icon: Icons.campaign_outlined,
       onOpen: () => widget.onSelect(StudentSection.comunicados),
       child: _body(
@@ -560,25 +717,27 @@ class _StudentOverviewState extends State<StudentOverview> {
         const SizedBox(height: 8),
         LayoutBuilder(
           builder: (context, bounds) =>
-              bounds.maxWidth >= 740 ||
-                  (bounds.maxWidth >= 340 &&
-                      MediaQuery.textScalerOf(context).scale(1) <= 1.2)
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              bounds.maxWidth >= 640 &&
+                  MediaQuery.textScalerOf(context).scale(1) <= 1.2
+              ? Column(
                   children: [
-                    Expanded(child: Column(children: [courses, motivation])),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          tasks,
-                          const SizedBox(height: 6),
-                          schedule,
-                          const SizedBox(height: 6),
-                          notices,
-                        ],
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: Column(children: [courses, notices])),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              tasks,
+                              const SizedBox(height: 6),
+                              schedule,
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
+                    motivation,
                   ],
                 )
               : Column(

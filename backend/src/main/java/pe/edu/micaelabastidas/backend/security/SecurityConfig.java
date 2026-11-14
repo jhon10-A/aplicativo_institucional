@@ -110,7 +110,7 @@ public class SecurityConfig {
                     (uri.getPath() != null && !uri.getPath().isEmpty())) {
                 throw new IllegalArgumentException("app.cors.allowed-origin requiere un origen HTTP local explícito con puerto");
             }
-            cors.setAllowedOrigins(List.of(origin));
+            cors.setAllowedOriginPatterns(List.of("http://localhost:[*]", "http://127.0.0.1:[*]"));
         }
         cors.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
         cors.setAllowedHeaders(List.of("Content-Type", "Authorization", "Accept"));
