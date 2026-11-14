@@ -10,6 +10,7 @@ import 'screens/login_page.dart';
 import 'screens/session_page.dart';
 import 'screens/technology_page.dart';
 import 'widgets/institutional_brand.dart';
+import 'features/teacher/screens/teacher_panel.dart';
 
 void main() => runApp(const MyApp());
 
@@ -57,6 +58,11 @@ class _MyAppState extends State<MyApp> {
         _session != null &&
         _access == AccessProfile.estudiante &&
         _session!.roles.contains('ESTUDIANTE');
+        
+    final teacherSession =
+    _session != null &&
+    _access == AccessProfile.docente &&
+    _session!.roles.contains('DOCENTE');
     return MaterialApp(
       title: 'I.E. Micaela Bastidas Puyucahua',
       debugShowCheckedModeBanner: false,
@@ -80,12 +86,14 @@ class _MyAppState extends State<MyApp> {
       home: PopScope(
         canPop: _access == null && !_technology && _session == null,
         onPopInvokedWithResult: (didPop, result) {
-          if (!didPop && !studentSession) _home();
+          if (!didPop && !studentSession && !teacherSession) _home();
         },
         child: _session != null
             ? studentSession
                   ? StudentPanel(session: _session!, onLogout: _home)
-                  : SessionPage(session: _session!, onLogout: _home)
+                  : teacherSession
+                      ? TeacherPanel(session: _session!, onLogout: _home)
+                      : SessionPage(session: _session!, onLogout: _home)
             : _access != null
             ? LoginPage(
                 key: ValueKey(_access),
@@ -103,4 +111,7 @@ class _MyAppState extends State<MyApp> {
       ),
     );
   }
+  
+
+  
 }

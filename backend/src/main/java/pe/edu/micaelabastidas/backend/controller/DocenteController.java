@@ -4,9 +4,9 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import pe.edu.micaelabastidas.backend.dto.DocenteRequestDto;
-import pe.edu.micaelabastidas.backend.dto.DocenteResponseDto;
+import pe.edu.micaelabastidas.backend.dto.*;
 import pe.edu.micaelabastidas.backend.service.DocenteService;
 
 import java.util.List;
@@ -21,6 +21,41 @@ public class DocenteController {
     @GetMapping
     public ResponseEntity<List<DocenteResponseDto>> listarTodos() {
         return ResponseEntity.ok(docenteService.obtenerTodos());
+    }
+
+    @GetMapping("/perfil")
+    public ResponseEntity<DocenteResponseDto> obtenerMiPerfil(Authentication authentication) {
+        return ResponseEntity.ok(docenteService.obtenerPorNombreUsuario(authentication.getName()));
+    }
+
+    @GetMapping("/asignaciones")
+    public ResponseEntity<List<AsignacionDocenteDto>> listarMisAsignaciones(Authentication authentication) {
+        return ResponseEntity.ok(docenteService.obtenerMisAsignaciones(authentication.getName()));
+    }
+
+    @GetMapping("/asignaciones/{asignacionId}/estudiantes")
+    public ResponseEntity<List<EstudianteSeccionDto>> listarEstudiantesPorAsignacion(
+            Authentication authentication,
+            @PathVariable Long asignacionId) {
+        return ResponseEntity.ok(docenteService.obtenerEstudiantesDeAsignacion(authentication.getName(), asignacionId));
+    }
+
+    @PostMapping("/asignaciones/{asignacionId}/asistencias")
+    public ResponseEntity<Void> registrarAsistencia(
+            Authentication authentication,
+            @PathVariable Long asignacionId,
+            @Valid @RequestBody AsistenciaRequestDto dto) {
+        docenteService.registrarAsistencia(authentication.getName(), asignacionId, dto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/asignaciones/{asignacionId}/calificaciones")
+    public ResponseEntity<Void> registrarCalificacion(
+            Authentication authentication,
+            @PathVariable Long asignacionId,
+            @Valid @RequestBody CalificacionRequestDto dto) {
+        docenteService.registrarCalificacion(authentication.getName(), asignacionId, dto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping("/{id}")

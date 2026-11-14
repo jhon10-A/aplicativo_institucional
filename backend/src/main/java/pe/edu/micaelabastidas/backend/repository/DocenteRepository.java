@@ -8,7 +8,10 @@ import java.util.Optional;
 
 @Repository
 public interface DocenteRepository extends JpaRepository<Docente, Long> {
+    Optional<Docente> findByUsuarioId(Long usuarioId);
+    Optional<Docente> findByUsuarioNombreUsuario(String nombreUsuario);
     Optional<Docente> findByDocumentoIdentidad(String documentoIdentidad);
     boolean existsByDocumentoIdentidad(String documentoIdentidad);
     boolean existsByUsuarioId(Long usuarioId);
+
 }
