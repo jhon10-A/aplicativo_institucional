@@ -217,6 +217,23 @@ class BackendApplicationTests {
                         .header("Access-Control-Request-Headers", "content-type"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
+        mvc.perform(options("/api/estudiante/perfil").header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "GET")
+                        .header("Access-Control-Request-Headers", "authorization,content-type"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"))
+                .andExpect(header().string("Access-Control-Allow-Headers", org.hamcrest.Matchers.containsString("authorization")))
+                .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"));
+        mvc.perform(options("/api/estudiante/matriculas/1/tareas/1/entrega").header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "POST")
+                        .header("Access-Control-Request-Headers", "authorization,content-type"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/estudiante/perfil").header("Origin", "http://localhost:5173"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
+        mvc.perform(options("/api/estudiante/perfil").header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "DELETE"))
+                .andExpect(status().isForbidden());
         mvc.perform(options("/api/auth/login").header("Origin", "http://localhost:5174")
                         .header("Access-Control-Request-Method", "POST"))
                 .andExpect(status().isForbidden())

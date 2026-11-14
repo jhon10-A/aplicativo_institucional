@@ -43,3 +43,6 @@ build/
 
 /config/application-local.properties
 /config/*.local.properties
+
+# Private student attachments, never served as static resources.
+/storage/

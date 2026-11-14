@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import 'access_profile.dart';
 import 'auth.dart';
+import 'features/institutional/institutional_page.dart';
+import 'features/institutional/institutional_section.dart';
 import 'features/student/screens/student_panel.dart';
 import 'screens/home_page.dart';
 import 'screens/login_page.dart';
@@ -25,6 +27,7 @@ class _MyAppState extends State<MyApp> {
   late final AuthApi _api = widget.authApi ?? AuthApi();
   AccessProfile? _access;
   bool _technology = false;
+  InstitutionalSection? _institutional;
   Session? _session;
   Timer? _expiration;
 
@@ -34,6 +37,7 @@ class _MyAppState extends State<MyApp> {
       _session = null;
       _access = null;
       _technology = false;
+      _institutional = null;
     });
   }
 
@@ -64,6 +68,9 @@ class _MyAppState extends State<MyApp> {
     _access == AccessProfile.docente &&
     _session!.roles.contains('DOCENTE');
     return MaterialApp(
+      // Discard private routes and dialogs on login, logout or session expiry.
+      // Object identity avoids putting the token into widget diagnostics.
+      key: ObjectKey(_session),
       title: 'I.E. Micaela Bastidas Puyucahua',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -84,16 +91,25 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       home: PopScope(
-        canPop: _access == null && !_technology && _session == null,
+        canPop:
+            _access == null &&
+            !_technology &&
+            _session == null &&
+            _institutional == null,
         onPopInvokedWithResult: (didPop, result) {
           if (!didPop && !studentSession && !teacherSession) _home();
         },
-        child: _session != null
+       child: _session != null
             ? studentSession
-                  ? StudentPanel(session: _session!, onLogout: _home)
-                  : teacherSession
-                      ? TeacherPanel(session: _session!, onLogout: _home)
-                      : SessionPage(session: _session!, onLogout: _home)
+                ? StudentPanel(
+                    session: _session!,
+                    onLogout: _home,
+                    apiBaseUrl: _api.baseUrl,
+                  )
+                : teacherSession
+                    ? TeacherPanel(session: _session!, onLogout: _home)
+                    : SessionPage(session: _session!, onLogout: _home)
+       
             : _access != null
             ? LoginPage(
                 key: ValueKey(_access),
@@ -102,9 +118,18 @@ class _MyAppState extends State<MyApp> {
                 onLogin: _login,
                 onBack: _home,
               )
+            : _institutional != null
+            ? InstitutionalPage(
+                section: _institutional!,
+                onBack: _home,
+                onSection: (section) =>
+                    setState(() => _institutional = section),
+              )
             : _technology
             ? TechnologyPage(onBack: _home)
             : HomePage(
+                onInstitutional: (section) =>
+                    setState(() => _institutional = section),
                 onAccess: (access) => setState(() => _access = access),
                 onTechnology: () => setState(() => _technology = true),
               ),
