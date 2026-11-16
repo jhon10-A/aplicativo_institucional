@@ -3,14 +3,20 @@ import 'package:flutter/material.dart';
 import '../guardian_api.dart';
 import '../guardian_attendance.dart';
 import '../guardian_child.dart';
+import '../guardian_section.dart';
 import '../widgets/guardian_child_picker.dart';
 import '../widgets/guardian_message.dart';
 
-const _states = <String, (String, IconData)>{
-  'PRESENTE': ('Presente', Icons.check_circle_outline),
-  'TARDANZA': ('Tardanza', Icons.schedule),
-  'FALTA': ('Falta', Icons.cancel_outlined),
-  'JUSTIFICADA': ('Justificada', Icons.description_outlined),
+/// Etiqueta, icono y color de cada estado (el texto siempre acompaña al color).
+const _states = <String, (String, IconData, Color)>{
+  'PRESENTE': ('Presente', Icons.check_circle_outline, Color(0xFF1E8E3E)),
+  'TARDANZA': ('Tardanza', Icons.schedule, Color(0xFFC76A00)),
+  'FALTA': ('Falta', Icons.cancel_outlined, Color(0xFFC62828)),
+  'JUSTIFICADA': (
+    'Justificada',
+    Icons.description_outlined,
+    Color(0xFF1565C0),
+  ),
 };
 
 class GuardianAttendanceScreen extends StatelessWidget {
@@ -20,7 +26,7 @@ class GuardianAttendanceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GuardianChildPicker(
     api: api,
-    title: 'Asistencia',
+    section: GuardianSection.asistencia,
     builder: (context, child) => _AttendanceView(api: api, child: child),
   );
 }
@@ -71,27 +77,35 @@ class _AttendanceViewState extends State<_AttendanceView> {
         );
       }
       return ListView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            widget.child.nombreCompleto,
-            style: Theme.of(context).textTheme.titleMedium,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 560 ? 4 : 2;
+              final width =
+                  (constraints.maxWidth - 12 * (columns - 1)) / columns;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final entry in _states.entries)
+                    SizedBox(
+                      width: width,
+                      child: _CountTile(
+                        stateKey: entry.key,
+                        label: entry.value.$1,
+                        icon: entry.value.$2,
+                        color: entry.value.$3,
+                        value: records
+                            .where((r) => r.estado == entry.key)
+                            .length,
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              for (final entry in _states.entries)
-                _CountBox(
-                  stateKey: entry.key,
-                  label: entry.value.$1,
-                  icon: entry.value.$2,
-                  value: records.where((r) => r.estado == entry.key).length,
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
           Text('Total de registros: ${records.length}'),
           const SizedBox(height: 16),
           Text(
@@ -106,37 +120,49 @@ class _AttendanceViewState extends State<_AttendanceView> {
   );
 }
 
-class _CountBox extends StatelessWidget {
-  const _CountBox({
+class _CountTile extends StatelessWidget {
+  const _CountTile({
     required this.stateKey,
     required this.label,
     required this.icon,
+    required this.color,
     required this.value,
   });
   final String stateKey;
   final String label;
   final IconData icon;
+  final Color color;
   final int value;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 150,
-    child: Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(icon),
-            const SizedBox(height: 8),
-            Text(
-              '$value',
-              key: ValueKey('attendance-count-$stateKey'),
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            Text(label),
-          ],
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: Colors.white, size: 28),
+        const SizedBox(height: 8),
+        Text(
+          '$value',
+          key: ValueKey('attendance-count-$stateKey'),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 30,
+            fontWeight: FontWeight.w800,
+          ),
         ),
-      ),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     ),
   );
 }
@@ -148,15 +174,26 @@ class _RecordTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = _states[record.estado];
+    final color = state?.$3 ?? const Color(0xFF5B6B7F);
     return Card(
       child: ListTile(
-        leading: Icon(state?.$2 ?? Icons.help_outline),
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(state?.$2 ?? Icons.help_outline, color: color),
+        ),
         title: Text('${record.fecha} · ${record.curso}'),
-        subtitle:
-            record.observacion == null || record.observacion!.isEmpty
+        subtitle: record.observacion == null || record.observacion!.isEmpty
             ? null
             : Text(record.observacion!),
-        trailing: Text(state?.$1 ?? record.estado),
+        trailing: Text(
+          state?.$1 ?? record.estado,
+          style: TextStyle(color: color, fontWeight: FontWeight.w700),
+        ),
       ),
     );
   }

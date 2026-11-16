@@ -57,6 +57,11 @@ String _count(WidgetTester tester, String state) => tester
 
 void main() {
   testWidgets('resume la asistencia y lista los registros', (tester) async {
+    // Pantalla alta: la lista es perezosa y solo dibuja lo que cabe.
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final client = MockClient((request) async {
       if (request.url.path == '/api/apoderado/hijos') return _json([_child()]);
       expect(request.url.path, '/api/apoderado/hijos/7/asistencia');

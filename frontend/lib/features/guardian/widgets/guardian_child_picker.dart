@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../guardian_api.dart';
 import '../guardian_child.dart';
+import '../guardian_section.dart';
+import '../guardian_theme.dart';
 import 'guardian_message.dart';
+import 'guardian_widgets.dart';
 
 /// Carga los hijos del apoderado, deja elegir uno y construye el contenido
 /// de la sección para el hijo elegido. Lo reutilizan Calificaciones, Asistencia, etc.
@@ -10,11 +13,11 @@ class GuardianChildPicker extends StatefulWidget {
   const GuardianChildPicker({
     super.key,
     required this.api,
-    required this.title,
+    required this.section,
     required this.builder,
   });
   final GuardianApi api;
-  final String title;
+  final GuardianSection section;
   final Widget Function(BuildContext context, GuardianChild child) builder;
 
   @override
@@ -68,29 +71,27 @@ class _GuardianChildPickerState extends State<GuardianChildPicker> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-                child: Text(
-                  widget.title,
-                  style: Theme.of(context).textTheme.headlineSmall,
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                child: GuardianSectionHeader(section: widget.section),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    for (final c in children)
+                      _ChildOption(
+                        child: c,
+                        selected: c.id == selected.id,
+                        onTap: children.length > 1
+                            ? () => setState(() => _selectedId = c.id)
+                            : null,
+                      ),
+                  ],
                 ),
               ),
-              if (children.length > 1)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Wrap(
-                    spacing: 8,
-                    children: [
-                      for (final c in children)
-                        ChoiceChip(
-                          key: ValueKey('guardian-pick-${c.id}'),
-                          label: Text(c.nombreCompleto),
-                          selected: c.id == selected.id,
-                          onSelected: (_) =>
-                              setState(() => _selectedId = c.id),
-                        ),
-                    ],
-                  ),
-                ),
+              const SizedBox(height: 8),
               Expanded(
                 child: KeyedSubtree(
                   key: ValueKey(selected.id),
@@ -102,5 +103,77 @@ class _GuardianChildPickerState extends State<GuardianChildPicker> {
         ),
       );
     },
+  );
+}
+
+class _ChildOption extends StatelessWidget {
+  const _ChildOption({
+    required this.child,
+    required this.selected,
+    required this.onTap,
+  });
+  final GuardianChild child;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(maxWidth: 360),
+    child: Semantics(
+      selected: selected,
+      child: Material(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: selected ? guardianWine : const Color(0xFFDDEAF4),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: InkWell(
+          key: ValueKey('guardian-pick-${child.id}'),
+          customBorder: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GuardianAvatar(
+                  initials: guardianInitials(child.nombres, child.apellidos),
+                  size: 44,
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        child.nombreCompleto,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      if (child.aula.isNotEmpty)
+                        Text(
+                          child.aula,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                    ],
+                  ),
+                ),
+                if (selected) ...[
+                  const SizedBox(width: 8),
+                  const Icon(Icons.check_circle, color: guardianWine),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
   );
 }
