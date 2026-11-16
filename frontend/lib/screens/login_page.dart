@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../access_profile.dart';
 import '../auth.dart';
+import '../features/guardian/guardian_access_view.dart';
 import '../features/institutional/student_access_view.dart';
 import '../widgets/institutional_brand.dart';
 import '../widgets/login_form.dart';
@@ -21,6 +22,8 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => access == AccessProfile.estudiante
       ? StudentAccessView(api: api, onLogin: onLogin, onBack: onBack)
+      : access == AccessProfile.apoderado
+      ? GuardianAccessView(api: api, onLogin: onLogin, onBack: onBack)
       : Scaffold(
           backgroundColor: const Color(0xFFECF5FD),
           body: SafeArea(
