@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import 'access_profile.dart';
 import 'auth.dart';
+
+import 'features/guardian/screens/guardian_panel.dart';
 import 'features/institutional/institutional_page.dart';
 import 'features/institutional/institutional_section.dart';
 import 'features/student/screens/student_panel.dart';
@@ -62,11 +64,16 @@ class _MyAppState extends State<MyApp> {
         _session != null &&
         _access == AccessProfile.estudiante &&
         _session!.roles.contains('ESTUDIANTE');
-        
+
+    final guardianSession =
+        _session != null &&
+        _access == AccessProfile.apoderado &&
+        _session!.roles.contains('APODERADO');
     final teacherSession =
     _session != null &&
     _access == AccessProfile.docente &&
     _session!.roles.contains('DOCENTE');
+
     return MaterialApp(
       // Discard private routes and dialogs on login, logout or session expiry.
       // Object identity avoids putting the token into widget diagnostics.
@@ -97,7 +104,9 @@ class _MyAppState extends State<MyApp> {
             _session == null &&
             _institutional == null,
         onPopInvokedWithResult: (didPop, result) {
-          if (!didPop && !studentSession && !teacherSession) _home();
+
+          if (!didPop && !studentSession && !guardianSession && !teacherSession) _home();
+
         },
        child: _session != null
             ? studentSession
@@ -106,10 +115,11 @@ class _MyAppState extends State<MyApp> {
                     onLogout: _home,
                     apiBaseUrl: _api.baseUrl,
                   )
+                : guardianSession
+                ? GuardianPanel(session: _session!, onLogout: _home)
                 : teacherSession
-                    ? TeacherPanel(session: _session!, onLogout: _home)
-                    : SessionPage(session: _session!, onLogout: _home)
-       
+                ? TeacherPanel(session: _session!, onLogout: _home)
+                : SessionPage(session: _session!, onLogout: _home)
             : _access != null
             ? LoginPage(
                 key: ValueKey(_access),
