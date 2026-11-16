@@ -156,75 +156,82 @@ class _StudentPanelState extends State<StudentPanel> {
   Widget build(BuildContext context) => Theme(
     data: studentTheme(Theme.of(context)),
     child: Builder(
-      builder: (context) => PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          if (_section != StudentSection.inicio) {
-            _home();
-          } else {
-            widget.onLogout();
-          }
-        },
-        child: Scaffold(
-          bottomNavigationBar: StudentBottomNavigation(
-            selected: _section,
-            onSelect: _select,
-          ),
-          body: SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: (MediaQuery.sizeOf(context).height * .30).clamp(
-                      80,
-                      180,
+      builder: (context) {
+        final androidPhone =
+            Theme.of(context).platform == TargetPlatform.android &&
+            MediaQuery.sizeOf(context).width < 600;
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            if (_section != StudentSection.inicio) {
+              _home();
+            } else {
+              widget.onLogout();
+            }
+          },
+          child: Scaffold(
+            bottomNavigationBar: StudentBottomNavigation(
+              selected: _section,
+              onSelect: _select,
+            ),
+            body: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: (MediaQuery.sizeOf(context).height * .30)
+                          .clamp(80, 180),
                     ),
-                  ),
-                  child: SingleChildScrollView(
-                    primary: false,
-                    child: StudentHeader(
-                      compact:
-                          MediaQuery.sizeOf(context).width < 1000 ||
-                          MediaQuery.textScalerOf(context).scale(1) > 1.25,
-                      onLogout: widget.onLogout,
-                    ),
-                  ),
-                ),
-                StudentTopNavigation(selected: _section, onSelect: _select),
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1200),
-                      child: IndexedStack(
-                        index: _section == StudentSection.inicio ? 0 : 1,
-                        children: [
-                          StudentHome(
-                            key: ObjectKey(widget.session),
-                            session: widget.session,
-                            onQuickView: (section) => _openQuickView(section),
-                            selectedEnrollmentId: _enrollmentId,
-                            onEnrollmentChanged: _rememberEnrollment,
-                            onSelect: _select,
-                            apiFactory: _api,
-                            onUnauthorized: widget.onLogout,
-                          ),
-                          KeyedSubtree(
-                            key: ValueKey('$_section-$_quickDetailId'),
-                            child: _sectionContent(),
-                          ),
-                        ],
+                    child: SingleChildScrollView(
+                      primary: false,
+                      child: StudentHeader(
+                        compact:
+                            MediaQuery.sizeOf(context).width < 1000 ||
+                            MediaQuery.textScalerOf(context).scale(1) > 1.25,
+                        onLogout: widget.onLogout,
                       ),
                     ),
                   ),
-                ),
-              ],
+                  StudentTopNavigation(
+                    selected: _section,
+                    onSelect: _select,
+                    compact: androidPhone,
+                  ),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1200),
+                        child: IndexedStack(
+                          index: _section == StudentSection.inicio ? 0 : 1,
+                          children: [
+                            StudentHome(
+                              key: ObjectKey(widget.session),
+                              session: widget.session,
+                              onQuickView: (section) => _openQuickView(section),
+                              selectedEnrollmentId: _enrollmentId,
+                              onEnrollmentChanged: _rememberEnrollment,
+                              onSelect: _select,
+                              apiFactory: _api,
+                              onUnauthorized: widget.onLogout,
+                            ),
+                            KeyedSubtree(
+                              key: ValueKey('$_section-$_quickDetailId'),
+                              child: _sectionContent(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     ),
   );
 }

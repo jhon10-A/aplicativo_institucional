@@ -14,6 +14,7 @@ import 'screens/login_page.dart';
 import 'screens/session_page.dart';
 import 'screens/technology_page.dart';
 import 'widgets/institutional_brand.dart';
+import 'features/teacher/screens/teacher_panel.dart';
 
 void main() => runApp(const MyApp());
 
@@ -63,10 +64,16 @@ class _MyAppState extends State<MyApp> {
         _session != null &&
         _access == AccessProfile.estudiante &&
         _session!.roles.contains('ESTUDIANTE');
+
     final guardianSession =
         _session != null &&
         _access == AccessProfile.apoderado &&
         _session!.roles.contains('APODERADO');
+    final teacherSession =
+    _session != null &&
+    _access == AccessProfile.docente &&
+    _session!.roles.contains('DOCENTE');
+
     return MaterialApp(
       // Discard private routes and dialogs on login, logout or session expiry.
       // Object identity avoids putting the token into widget diagnostics.
@@ -97,14 +104,22 @@ class _MyAppState extends State<MyApp> {
             _session == null &&
             _institutional == null,
         onPopInvokedWithResult: (didPop, result) {
-          if (!didPop && !studentSession && !guardianSession) _home();
+
+          if (!didPop && !studentSession && !guardianSession && !teacherSession) _home();
+
         },
-        child: _session != null
+       child: _session != null
             ? studentSession
-                  ? StudentPanel(session: _session!, onLogout: _home,apiBaseUrl: _api.baseUrl,)
-                  : guardianSession
-                  ? GuardianPanel(session: _session!, onLogout: _home)
-                  : SessionPage(session: _session!, onLogout: _home)
+                ? StudentPanel(
+                    session: _session!,
+                    onLogout: _home,
+                    apiBaseUrl: _api.baseUrl,
+                  )
+                : guardianSession
+                ? GuardianPanel(session: _session!, onLogout: _home)
+                : teacherSession
+                ? TeacherPanel(session: _session!, onLogout: _home)
+                : SessionPage(session: _session!, onLogout: _home)
             : _access != null
             ? LoginPage(
                 key: ValueKey(_access),
@@ -131,4 +146,7 @@ class _MyAppState extends State<MyApp> {
       ),
     );
   }
+  
+
+  
 }

@@ -5,6 +5,8 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import pe.edu.micaelabastidas.backend.dev.DevAccountInitializer;
+import pe.edu.micaelabastidas.backend.dev.DevTeacherAccountInitializer;
+import pe.edu.micaelabastidas.backend.repository.DocenteRepository;
 import pe.edu.micaelabastidas.backend.repository.UsuarioRepository;
 import pe.edu.micaelabastidas.backend.repository.RolRepository;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,6 +17,12 @@ class DevAccountActivationTests {
             .withUserConfiguration(DevAccountInitializer.class)
             .withBean(UsuarioRepository.class, () -> mock(UsuarioRepository.class))
             .withBean(RolRepository.class, () -> mock(RolRepository.class))
+            .withBean(PasswordEncoder.class, () -> new BCryptPasswordEncoder(4));
+    private final ApplicationContextRunner teacherRunner = new ApplicationContextRunner()
+            .withUserConfiguration(DevTeacherAccountInitializer.class)
+            .withBean(UsuarioRepository.class, () -> mock(UsuarioRepository.class))
+            .withBean(RolRepository.class, () -> mock(RolRepository.class))
+            .withBean(DocenteRepository.class, () -> mock(DocenteRepository.class))
             .withBean(PasswordEncoder.class, () -> new BCryptPasswordEncoder(4));
 
     @Test
@@ -34,5 +42,24 @@ class DevAccountActivationTests {
         runner.withInitializer(context -> context.getEnvironment().setActiveProfiles("dev"))
                 .withPropertyValues("app.dev.seed-enabled=true")
                 .run(context -> assertThat(context).hasSingleBean(DevAccountInitializer.class));
+    }
+
+    @Test
+    void teacherFlagWithoutDevProfileDoesNotActivateInitializer() {
+        teacherRunner.withPropertyValues("app.dev.teacher-seed-enabled=true")
+                .run(context -> assertThat(context).doesNotHaveBean(DevTeacherAccountInitializer.class));
+    }
+
+    @Test
+    void devProfileWithoutTeacherFlagDoesNotActivateInitializer() {
+        teacherRunner.withInitializer(context -> context.getEnvironment().setActiveProfiles("dev"))
+                .run(context -> assertThat(context).doesNotHaveBean(DevTeacherAccountInitializer.class));
+    }
+
+    @Test
+    void teacherInitializerRequiresDevProfileAndItsOwnExplicitFlag() {
+        teacherRunner.withInitializer(context -> context.getEnvironment().setActiveProfiles("dev"))
+                .withPropertyValues("app.dev.teacher-seed-enabled=true")
+                .run(context -> assertThat(context).hasSingleBean(DevTeacherAccountInitializer.class));
     }
 }
