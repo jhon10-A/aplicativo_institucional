@@ -348,11 +348,27 @@ class _TeacherPanelState extends State<TeacherPanel> {
   }
 
   Widget _buildTopNavbar() {
-    final isCompact = MediaQuery.of(context).size.width < 560;
+    final width = MediaQuery.of(context).size.width;
+    final isCompact = width < 560;
+    final showMotto = width >= 640 && width <= 1040 || width >= 1120;
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: _border)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            _wine,
+            const Color(0xFF5A082A),
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       padding: EdgeInsets.symmetric(horizontal: isCompact ? 12 : 24, vertical: 12),
       child: Center(
@@ -360,20 +376,33 @@ class _TeacherPanelState extends State<TeacherPanel> {
           constraints: const BoxConstraints(maxWidth: 1180),
           child: Row(
             children: [
+              // Escudo + Nombre de la Institución
               Expanded(
+                flex: 4,
                 child: InkWell(
                   onTap: () => setState(() => _activeView = 0),
                   child: Row(
                     children: [
-                      Image.asset(
-                        'assets/institutional/escudo.png',
-                        height: 40,
-                        errorBuilder: (_, _, _) => const CircleAvatar(
-                          backgroundColor: _navy,
-                          child: Text('MB', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white30, width: 1.5),
+                        ),
+                        child: Image.asset(
+                          'assets/institutional/escudo.png',
+                          height: 44,
+                          errorBuilder: (_, _, _) => const CircleAvatar(
+                            radius: 22,
+                            backgroundColor: Colors.white,
+                            child: Text(
+                              'MB',
+                              style: TextStyle(color: _wine, fontWeight: FontWeight.bold),
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,14 +411,23 @@ class _TeacherPanelState extends State<TeacherPanel> {
                               'I.E. Micaela Bastidas\nPuyucahua',
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: _navy, fontWeight: FontWeight.w800, fontSize: 13, height: 1.15),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14.5,
+                                height: 1.15,
+                              ),
                             ),
-                            SizedBox(height: 2),
+                            SizedBox(height: 3),
                             Text(
-                              'Tamburco · Abancay · Apurímac',
+                              'Tamburco - Abancay - Apurímac',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: Colors.black54, fontSize: 10.5),
+                              style: TextStyle(
+                                color: Color(0xFFF3D6DF),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ],
                         ),
@@ -398,25 +436,62 @@ class _TeacherPanelState extends State<TeacherPanel> {
                   ),
                 ),
               ),
-              if (MediaQuery.of(context).size.width > 920) ...[
+
+              // Separador diagonal + Lema institucional
+              if (showMotto) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Transform.rotate(
+                    angle: 0.32,
+                    child: Container(
+                      width: 1.5,
+                      height: 38,
+                      color: Colors.white30,
+                    ),
+                  ),
+                ),
+                const Flexible(
+                  flex: 3,
+                  child: Text(
+                    'Formando jóvenes\ncon valores para\nun mejor futuro',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Color(0xFFFCE8EE),
+                      fontStyle: FontStyle.italic,
+                      fontSize: 12,
+                      height: 1.2,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+              ],
+
+              // Enlaces de navegación en pantalla grande
+              if (width > 960) ...[
                 _navLink('Inicio', () => setState(() => _activeView = 0), active: _activeView == 0),
                 _navLink('Mis Cursos', () => setState(() => _activeView = 1), active: _activeView == 1),
                 _navLink('Estudiantes', () => setState(() => _activeView = 2), active: _activeView == 2),
                 _navLink('Asistencia', () => setState(() => _activeView = 3), active: _activeView == 3),
                 _navLink('Calificaciones', () => setState(() => _activeView = 4), active: _activeView == 4),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
               ],
+
+              // Botón recargar
               IconButton(
                 tooltip: 'Actualizar datos',
                 onPressed: _reload,
-                icon: const Icon(Icons.refresh, color: _navy),
+                icon: const Icon(Icons.refresh, color: Colors.white),
               ),
               const SizedBox(width: 4),
+
+              // Botón Cerrar sesión
               if (isCompact)
                 IconButton.filled(
                   style: IconButton.styleFrom(
-                    backgroundColor: _wine,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.white,
+                    foregroundColor: _wine,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   tooltip: 'Cerrar sesión',
@@ -426,14 +501,14 @@ class _TeacherPanelState extends State<TeacherPanel> {
               else
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: _wine,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    backgroundColor: Colors.white,
+                    foregroundColor: _wine,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: widget.onLogout,
                   icon: const Icon(Icons.logout, size: 18),
-                  label: const Text('Cerrar sesión', style: TextStyle(fontWeight: FontWeight.w600)),
+                  label: const Text('Cerrar sesión', style: TextStyle(fontWeight: FontWeight.w700)),
                 ),
             ],
           ),
@@ -444,15 +519,24 @@ class _TeacherPanelState extends State<TeacherPanel> {
 
   Widget _navLink(String label, VoidCallback onTap, {bool active = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: InkWell(
         onTap: onTap,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: active ? _wine : _navy,
-            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-            fontSize: 13.5,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: active
+              ? const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Colors.white, width: 2)),
+                )
+              : null,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? Colors.white : const Color(0xFFF3D6DF),
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              fontSize: 13.5,
+            ),
           ),
         ),
       ),
